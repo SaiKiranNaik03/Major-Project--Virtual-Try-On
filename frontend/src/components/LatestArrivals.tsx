@@ -50,7 +50,7 @@ const LatestArrivals = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="text-4xl font-bold mb-4">LATEST ARRIVALS</h2>
+          <h2 className="text-4xl font-bold mb-4">ON SALE</h2>
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -108,7 +108,7 @@ const LatestArrivals = () => {
           transition={{ delay: 0.8 }}
           className="text-center mt-12"
         >
-          <button className="text-gray-600 font-medium hover:text-black transition-colors">
+          <button className="text-gray-600 font-medium hover:text-black transition-colors" onClick={() => window.location.href = '/sale'}>
             View All
           </button>
         </motion.div>

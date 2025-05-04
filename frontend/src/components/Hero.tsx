@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 const Hero = () => {
   return (
@@ -47,7 +48,8 @@ const Hero = () => {
               transition={{ delay: 0.6 }}
               className="bg-black text-[20px] text-white px-10 py-4 rounded-full hover:bg-gray-800 transition-colors"
             >
-              Shop Now
+              <Link to="/casual">Shop Now</Link>
+              
             </motion.button>
 
             <motion.div

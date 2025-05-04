@@ -108,7 +108,7 @@ const NewArrivals = () => {
           transition={{ delay: 0.8 }}
           className="text-center mt-12"
         >
-          <button className="text-gray-600 font-medium hover:text-black transition-colors">
+          <button className="text-gray-600 font-medium hover:text-black transition-colors" onClick={() => window.location.href='/new-arrivals'}>
             View All
           </button>
         </motion.div>

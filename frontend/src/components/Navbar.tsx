@@ -19,11 +19,11 @@ const Navbar = () => {
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed w-full z-50 transition-all duration-300 ${
+      className={`fixed w-full bg-white  z-50 transition-all duration-300 ${
         isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center">
             <motion.h1 
@@ -38,10 +38,10 @@ const Navbar = () => {
           </div>
           
           <div className="hidden md:flex items-center space-x-8">
-            <motion.a whileHover={{ scale: 1.05 }} className="hover:text-gray-600" href="#">Men</motion.a>
-            <motion.a whileHover={{ scale: 1.05 }} className="hover:text-gray-600" href="#">WoMen</motion.a>
-            <motion.a whileHover={{ scale: 1.05 }} className="hover:text-gray-600" href="#">On Sale</motion.a>
-            <motion.a whileHover={{ scale: 1.05 }} className="hover:text-gray-600" href="#">New Arrivals</motion.a>
+            <motion.a whileHover={{ scale: 1.05 }} className="hover:text-gray-600" href="/men">Men</motion.a>
+            <motion.a whileHover={{ scale: 1.05 }} className="hover:text-gray-600" href="/women">WoMen</motion.a>
+            <motion.a whileHover={{ scale: 1.05 }} className="hover:text-gray-600" href="/sale">On Sale</motion.a>
+            <motion.a whileHover={{ scale: 1.05 }} className="hover:text-gray-600" href="/new-arrivals">New Arrivals</motion.a>
 
             <motion.a
                 whileHover={{ scale: 1.05 }}
@@ -69,16 +69,16 @@ const Navbar = () => {
             </div>
             
             <motion.div whileHover={{ scale: 1.1 }} className="cursor-pointer">
-              <HeartIcon className="h-6 w-6" />
+              <Link to="/Wishlist"><HeartIcon className="h-6 w-6" /></Link>
             </motion.div>
 
             
             <motion.div whileHover={{ scale: 1.1 }} className="cursor-pointer">
-              <UserIcon className="h-6 w-6" />
+              <Link to="/Profile"><UserIcon className="h-6 w-6" /></Link>
             </motion.div>
             
             <motion.div whileHover={{ scale: 1.1 }} className="cursor-pointer">
-              <ShoppingCartIcon className="h-6 w-6" />
+              <Link to="/Cart"><ShoppingCartIcon className="h-6 w-6" /></Link>
             </motion.div>
           </div>
         </div>
