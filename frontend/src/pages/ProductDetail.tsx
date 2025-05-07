@@ -33,6 +33,7 @@ interface RelatedProduct {
 const ProductDetail: React.FC = () => {
   // Extract product info from JSON
   const product = productData.data;
+  const productID = productData.data.id;
   
   // State for product details
   const [selectedColor, setSelectedColor] = useState<string>('blue');
