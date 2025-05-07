@@ -6,6 +6,9 @@ import { Link } from 'react-router-dom';
 import { FaStar, FaStarHalfAlt, FaRegStar, FaShoppingCart, FaHeart, FaShare, FaChevronRight } from 'react-icons/fa';
 import { HiOutlinePlus, HiOutlineMinus } from 'react-icons/hi';
 
+// Import product data
+import productData from '../../../Dataset/1163.json';
+
 interface Review {
   id: number;
   name: string;
@@ -28,8 +31,11 @@ interface RelatedProduct {
 }
 
 const ProductDetail: React.FC = () => {
+  // Extract product info from JSON
+  const product = productData.data;
+  
   // State for product details
-  const [selectedColor, setSelectedColor] = useState<string>('brown');
+  const [selectedColor, setSelectedColor] = useState<string>('blue');
   const [selectedSize, setSelectedSize] = useState<string>('L');
   const [quantity, setQuantity] = useState<number>(1);
   const [activeImage, setActiveImage] = useState<number>(0);
@@ -38,23 +44,25 @@ const ProductDetail: React.FC = () => {
   const [showReviewForm, setShowReviewForm] = useState<boolean>(false);
   const [reviewRating, setReviewRating] = useState<number>(5);
 
-  // Product images
+  // Product images from JSON
   const productImages = [
-    '/images/shirt.jpeg',
-    '/images/product-back.jpg',
-    '/images/product-detail.jpg',
-    '/images/product-model.jpg',
+    product.styleImages.default.imageURL,
+    product.styleImages.back.imageURL,
+    product.styleImages.front.imageURL,
+    product.brandUserProfile.image,
   ];
 
-  // Colors available
+  // Colors available - using the baseColour from JSON
   const colors = [
-    { name: 'brown', hex: '#8B4513' },
-    { name: 'green', hex: '#2F4F4F' },
     { name: 'blue', hex: '#000080' },
+    { name: 'navy', hex: '#000040' },
+    { name: 'lightblue', hex: '#ADD8E6' },
   ];
 
-  // Sizes available
-  const sizes = ['S', 'M', 'L', 'XL'];
+  // Sizes available from JSON
+  const sizes = product.styleOptions
+    .filter(option => option.name === 'Size')
+    .map(option => option.value);
 
   // Reviews
   const reviews: Review[] = [
@@ -63,7 +71,7 @@ const ProductDetail: React.FC = () => {
       name: 'Alex Johnson',
       rating: 5,
       date: '12 Aug 2023',
-      comment: "This t-shirt is amazing! The fabric is so soft and comfortable. I've been wearing it non-stop since I got it. The graphic design is eye-catching and I've received many compliments.",
+      comment: "This jersey is amazing! The fabric is so comfortable. I've been wearing it non-stop since I got it. The design is eye-catching and I've received many compliments.",
       helpful: 24,
     },
     {
@@ -71,7 +79,7 @@ const ProductDetail: React.FC = () => {
       name: 'Sarah Miller',
       rating: 4,
       date: '28 Jul 2023',
-      comment: "Great quality t-shirt. The fit is perfect and the material feels premium. The only reason I'm giving 4 stars is because the color is slightly different from what I expected.",
+      comment: "Great quality jersey. The fit is perfect and the material feels premium. The only reason I'm giving 4 stars is because the color is slightly different from what I expected.",
       helpful: 16,
     },
     {
@@ -79,7 +87,7 @@ const ProductDetail: React.FC = () => {
       name: 'Michael Chen',
       rating: 4.5,
       date: '15 Jul 2023',
-      comment: 'Excellent product for the price. The design is unique and the fabric is breathable. Perfect for summer days. Would definitely recommend!',
+      comment: 'Excellent product for the price. The design is unique and the fabric is breathable. Perfect for cricket matches. Would definitely recommend!',
       helpful: 9,
     },
   ];
@@ -88,52 +96,52 @@ const ProductDetail: React.FC = () => {
   const relatedProducts: RelatedProduct[] = [
     {
       id: 1,
-      name: 'URBAN GRAPHIC TEE',
-      price: 240,
-      originalPrice: 280,
-      discount: 15,
+      name: 'NIKE TEAM INDIA JERSEY',
+      price: 895,
+      originalPrice: 1200,
+      discount: 25,
       rating: 4.3,
       reviews: 42,
-      image: '/images/shirt.jpeg',
-      colors: ['#000', '#6B8E23', '#4682B4'],
+      image: product.styleImages.default.imageURL,
+      colors: ['#000080', '#6B8E23', '#4682B4'],
     },
     {
       id: 2,
-      name: 'MINIMAL LOGO SHIRT',
-      price: 220,
+      name: 'NIKE DRI-FIT SPORTS TEE',
+      price: 795,
       rating: 4.7,
       reviews: 56,
-      image: '/images/related-2.jpg',
-      colors: ['#000', '#FFF', '#8B4513'],
+      image: product.styleImages.front.imageURL,
+      colors: ['#000080', '#FFF', '#8B4513'],
     },
     {
       id: 3,
-      name: 'VINTAGE WASH TEE',
-      price: 260,
-      originalPrice: 320,
+      name: 'NIKE CRICKET FANWEAR',
+      price: 995,
+      originalPrice: 1250,
       discount: 20,
       rating: 4.1,
       reviews: 28,
-      image: '/images/related-3.jpg',
-      colors: ['#D3D3D3', '#000080', '#8B0000'],
+      image: product.styleImages.back.imageURL,
+      colors: ['#000080', '#000', '#8B0000'],
     },
     {
       id: 4,
-      name: 'ABSTRACT ART SHIRT',
-      price: 280,
+      name: 'NIKE PERFORMANCE JERSEY',
+      price: 1095,
       rating: 4.8,
       reviews: 64,
-      image: '/images/related-4.jpg',
-      colors: ['#FFF', '#000', '#4B0082'],
+      image: product.styleImages.default.resolutions['360X480'],
+      colors: ['#000080', '#000', '#4B0082'],
     },
     {
       id: 5,
-      name: 'CASUAL WHITE SHIRT',
+      name: 'NIKE TEAM SUPPORTER TEE',
       price: 780,
       rating: 4.8,
       reviews: 85,
-      image: '/images/related-4.jpg',
-      colors: ['#FFF', '#000', '#4B0082'],
+      image: product.styleImages.front.resolutions['360X480'],
+      colors: ['#000080', '#000', '#4B0082'],
     },
   ];
 
@@ -226,9 +234,11 @@ const ProductDetail: React.FC = () => {
           <FaChevronRight className="mx-2 mt-1" />
           <Link to="/shop" className="hover:text-black transition-colors">Shop</Link>
           <FaChevronRight className="mx-2 mt-1" />
-          <Link to="/shop/men" className="hover:text-black transition-colors">Men</Link>
+          <Link to={`/shop/${product.gender.toLowerCase()}`} className="hover:text-black transition-colors">{product.gender}</Link>
           <FaChevronRight className="mx-2 mt-1" />
-          <span className="text-black font-medium">T-shirts</span>
+          <Link to={`/shop/${product.gender.toLowerCase()}/${product.articleType.typeName.toLowerCase()}`} className="hover:text-black transition-colors">{product.articleType.typeName}</Link>
+          <FaChevronRight className="mx-2 mt-1" />
+          <span className="text-black font-medium">{product.brandName}</span>
         </nav>
 
         {/* Product Section */}
@@ -287,7 +297,7 @@ const ProductDetail: React.FC = () => {
               variants={fadeIn}
               className="text-3xl md:text-4xl font-bold tracking-tight"
             >
-              ONE LIFE GRAPHIC T-SHIRT
+              {product.productDisplayName}
             </motion.h1>
 
             <motion.div 
@@ -295,25 +305,29 @@ const ProductDetail: React.FC = () => {
               className="flex items-center mt-2"
             >
               <div className="flex mr-2">
-                {renderStarRating(4.5)}
+                {renderStarRating(product.myntraRating || 4)}
               </div>
-              <span className="text-gray-600 text-sm">4.5 (128 reviews)</span>
+              <span className="text-gray-600 text-sm">{product.myntraRating || 4} ({reviews.length} reviews)</span>
             </motion.div>
 
             <motion.div 
               variants={fadeIn}
               className="mt-4 flex items-center"
             >
-              <span className="text-2xl md:text-3xl font-bold">$260</span>
-              <span className="ml-3 text-lg text-gray-500 line-through">$300</span>
-              <span className="ml-3 bg-red-100 text-red-700 px-2 py-1 rounded text-sm font-medium">-13%</span>
+              <span className="text-2xl md:text-3xl font-bold">₹{product.price}</span>
+              {product.price !== product.discountedPrice && (
+                <>
+                  <span className="ml-3 text-lg text-gray-500 line-through">₹{product.price * 1.15}</span>
+                  <span className="ml-3 bg-red-100 text-red-700 px-2 py-1 rounded text-sm font-medium">-15%</span>
+                </>
+              )}
             </motion.div>
 
             <motion.p 
               variants={fadeIn}
               className="mt-6 text-gray-600"
             >
-              Experience ultimate comfort with our premium ONE LIFE graphic t-shirt. Made from 100% organic cotton, this shirt features a unique design that makes a statement. The breathable fabric ensures all-day comfort, whether you're out for a casual day or making a fashion statement.
+              {product.productDescriptors.description.value.replace(/<\/?p>|<\/?br>/g, '')}
             </motion.p>
 
             {/* Color Selection */}
@@ -385,14 +399,15 @@ const ProductDetail: React.FC = () => {
 
             {/* Action Buttons */}
             <motion.div variants={fadeIn} className="mt-8 flex flex-col sm:flex-row gap-4">
-              <motion.button
-                className="flex-1 bg-black text-white py-3 px-6 rounded-md font-medium flex items-center justify-center"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {/* <FaShoppingCart className="mr-2" /> */}
-                Try-On
-              </motion.button>
+              {product.otherFlags?.some(flag => flag.name === 'isTryAndBuyEnabled' && flag.value === 'true') && (
+                <motion.button
+                  className="flex-1 bg-black text-white py-3 px-6 rounded-md font-medium flex items-center justify-center"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Try-On
+                </motion.button>
+              )}
               <motion.button
                 className="flex-1 bg-black text-white py-3 px-6 rounded-md font-medium flex items-center justify-center"
                 whileHover={{ scale: 1.02 }}
@@ -425,19 +440,27 @@ const ProductDetail: React.FC = () => {
               <div className="grid grid-cols-3 gap-5 text-sm">
                 <div>
                   <p className="text-gray-500">SKU</p>
-                  <p>FW2022-T105</p>
+                  <p>{product.articleNumber}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Category</p>
-                  <p>T-shirts, Men's Fashion</p>
+                  <p>{product.displayCategories}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Material</p>
-                  <p>100% Organic Cotton</p>
+                  <p>{product.productDescriptors.materials_care_desc.value.replace(/<\/?p>|<\/?br>/g, ', ')}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Tags</p>
-                  <p>Graphic, Casual, Summer</p>
+                  <p className="text-gray-500">Brand</p>
+                  <p>{product.brandName}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Fit</p>
+                  <p>{product.articleAttributes.Fit}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Occasion</p>
+                  <p>{product.articleAttributes.Occasion}</p>
                 </div>
               </div>
             </motion.div>
@@ -456,7 +479,7 @@ const ProductDetail: React.FC = () => {
             variants={fadeIn}
             className="text-2xl font-bold mb-8"
           >
-            You Might Also Like
+            More {product.brandName} {product.articleType.typeName}
           </motion.h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -492,10 +515,10 @@ const ProductDetail: React.FC = () => {
                   </div>
                   
                   <div className="mt-2 flex items-center">
-                    <span className="font-bold">₹ {product.price}</span>
+                    <span className="font-bold">₹{product.price}</span>
                     {product.originalPrice && (
                       <span className="ml-2 text-sm text-gray-500 line-through">
-                        MRP {product.originalPrice}
+                        ₹{product.originalPrice}
                       </span>
                     )}
                   </div>
