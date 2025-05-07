@@ -483,7 +483,7 @@ const ProductDetail: React.FC = () => {
           </motion.h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-            {relatedProducts.map((product, index) => (
+            {relatedProducts.map((product,) => (
               <motion.div
                 key={product.id}
                 variants={fadeIn}

@@ -45,6 +45,7 @@ function App() {
             <Route path="/cart" element={<Cart />} />
             <Route path="/casual" element={<CasualCollectiont />} />
             <Route path="/men" element={<MenCollection />} />
+            <Route path="/shop/men" element={<MenCollection />} />
             <Route path="/women" element={<WomenCollection />} />
             <Route path="/sale" element={<OnSaleCollection />} />
             <Route path="/product/:id" element={<ProductDetail />} />
