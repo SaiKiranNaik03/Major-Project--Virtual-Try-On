@@ -14,101 +14,51 @@ import {
 } from 'react-icons/fa';
 import { HiOutlineShoppingBag } from 'react-icons/hi';
 
-// Sample product data - this would normally come from your global state or API
-const allProducts = [
-  {
-    id: 1,
-    name: 'Gradient Graphic T-shirt',
-    price: 120,
-    originalPrice: 150,
-    discount: 20,
-    rating: 4.5,
-    reviews: 42,
-    image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#6B8E23', '#4682B4'],
-    sizes: ['S', 'M', 'L', 'XL'],
-    category: 'T-shirts',
-    style: 'Casual',
-    gender: 'Men'
-  },
-  {
-    id: 2,
-    name: 'Minimal Logo Shirt',
-    price: 95,
-    rating: 4.7,
-    reviews: 56,
-    image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#FFF', '#8B4513'],
-    sizes: ['M', 'L', 'XL'],
-    category: 'Shirts',
-    style: 'Casual',
-    gender: 'Men'
-  },
-  {
-    id: 3,
-    name: 'Women\'s Floral Dress',
-    price: 135,
-    originalPrice: 170,
-    discount: 20,
-    rating: 4.6,
-    reviews: 48,
-    image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#FF69B4', '#4682B4'],
-    sizes: ['XS', 'S', 'M', 'L'],
-    category: 'Dresses',
-    style: 'Casual',
-    gender: 'Women'
-  },
-  {
-    id: 4,
-    name: 'Women\'s Blazer',
-    price: 180,
-    originalPrice: 220,
-    discount: 18,
-    rating: 4.3,
-    reviews: 32,
-    image: 'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#D3D3D3', '#000080', '#8B0000'],
-    sizes: ['XS', 'S', 'M', 'L'],
-    category: 'Blazers',
-    style: 'Formal',
-    gender: 'Women'
-  },
-  {
-    id: 5,
-    name: 'Modern Minimalist Shirt',
-    price: 125,
-    rating: 4.8,
-    reviews: 12,
-    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#FFF', '#4682B4'],
-    sizes: ['S', 'M', 'L', 'XL'],
-    category: 'Shirts',
-    style: 'Casual',
-    gender: 'Men',
-    isNew: true
-  },
-  {
-    id: 6,
-    name: 'Women\'s Summer Dress',
-    price: 145,
-    rating: 4.7,
-    reviews: 14,
-    image: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#FFF', '#FF69B4', '#4682B4'],
-    sizes: ['XS', 'S', 'M', 'L'],
-    category: 'Dresses',
-    style: 'Casual',
-    gender: 'Women',
-    isNew: true
-  }
-];
+// Import product data
+import productData from '../../../Dataset/1163.json';
+
+interface Product {
+  id: number;
+  price: number;
+  discountedPrice: number;
+  productDisplayName: string;
+  brandName: string;
+  baseColour: string;
+  myntraRating: number;
+  articleNumber: string;
+  displayCategories: string;
+  season: string;
+  gender: string;
+  styleImages: {
+    default: { 
+      imageURL: string;
+      resolutions?: {
+        [key: string]: string;
+      };
+    };
+    back: { 
+      imageURL: string;
+      resolutions?: {
+        [key: string]: string;
+      };
+    };
+    front: { 
+      imageURL: string;
+      resolutions?: {
+        [key: string]: string;
+      };
+    };
+  };
+  styleOptions: Array<{
+    name: string;
+    value: string;
+    available: boolean;
+  }>;
+}
 
 const Wishlist: React.FC = () => {
-  // In a real app, this would be stored in global state (Redux, Context API, etc.)
-  // For this example, we'll use localStorage to persist the wishlist
   const [wishlist, setWishlist] = useState<number[]>([]);
-  const [wishlistProducts, setWishlistProducts] = useState<any[]>([]);
+  const [wishlistProducts, setWishlistProducts] = useState<Product[]>([]);
   const [selectedSize, setSelectedSize] = useState<{[key: number]: string}>({});
   const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
   const [isRemoving, setIsRemoving] = useState<{[key: number]: boolean}>({});
@@ -122,24 +72,45 @@ const Wishlist: React.FC = () => {
         setWishlist(parsedWishlist);
       } catch (error) {
         console.error('Error parsing wishlist from localStorage:', error);
+        // If there's an error, initialize with default product
+        initializeDefaultWishlist();
       }
     } else {
-      // For demo purposes, initialize with some items
-      const demoWishlist = [1, 3, 5];
-      setWishlist(demoWishlist);
-      localStorage.setItem('wishlist', JSON.stringify(demoWishlist));
+      // If no wishlist exists, initialize with default product
+      initializeDefaultWishlist();
     }
   }, []);
 
+  // Function to initialize default wishlist
+  const initializeDefaultWishlist = () => {
+    const defaultWishlist = [1163]; // Using the product ID from the JSON file
+    setWishlist(defaultWishlist);
+    localStorage.setItem('wishlist', JSON.stringify(defaultWishlist));
+  };
+
   // Update wishlistProducts whenever wishlist changes
   useEffect(() => {
-    const products = allProducts.filter(product => wishlist.includes(product.id));
+    if (wishlist.length === 0) {
+      setWishlistProducts([]);
+      return;
+    }
+
+    // For demo, we'll use the same product data for all items
+    const products = wishlist.map(id => ({
+      ...productData.data,
+      id: id
+    }));
     setWishlistProducts(products);
     
     // Initialize selected sizes
     const initialSizes: {[key: number]: string} = {};
     products.forEach(product => {
-      initialSizes[product.id] = product.sizes[0];
+      const availableSizes = product.styleOptions
+        .filter(option => option.name === 'Size' && option.available)
+        .map(option => option.value);
+      if (availableSizes.length > 0) {
+        initialSizes[product.id] = availableSizes[0];
+      }
     });
     setSelectedSize(initialSizes);
   }, [wishlist]);
@@ -148,15 +119,19 @@ const Wishlist: React.FC = () => {
   const removeFromWishlist = (productId: number) => {
     setIsRemoving({...isRemoving, [productId]: true});
     
-    // Delay actual removal to allow animation to complete
     setTimeout(() => {
       const updatedWishlist = wishlist.filter(id => id !== productId);
-      setWishlist(updatedWishlist);
-      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
       
-      // Reset the removing state for this product
+      // If the wishlist becomes empty, reinitialize it
+      if (updatedWishlist.length === 0) {
+        initializeDefaultWishlist();
+      } else {
+        setWishlist(updatedWishlist);
+        localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+      }
+      
       const newIsRemoving = {...isRemoving};
-      delete newIsRemoving[productId]; // Remove this product from the isRemoving state
+      delete newIsRemoving[productId];
       setIsRemoving(newIsRemoving);
     }, 300);
   };
@@ -166,12 +141,13 @@ const Wishlist: React.FC = () => {
     setSelectedSize({...selectedSize, [productId]: size});
   };
 
-  // Add to cart (in a real app, this would dispatch to your cart state)
+  // Add to cart
   const addToCart = (productId: number) => {
     const size = selectedSize[productId];
-    console.log(`Added product ${productId} with size ${size} to cart`);
-    // Here you would dispatch to your cart state
-    alert(`Added ${wishlistProducts.find(p => p.id === productId)?.name} (Size: ${size}) to cart`);
+    const product = wishlistProducts.find(p => p.id === productId);
+    if (product) {
+      alert(`Added ${product.productDisplayName} (Size: ${size}) to cart`);
+    }
   };
 
   // Render star rating
@@ -229,7 +205,7 @@ const Wishlist: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen pt-24 pb-16">
+    <div className="bg-white min-h-screen pt-24 pb-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="flex py-4 text-sm text-gray-500">
@@ -275,106 +251,103 @@ const Wishlist: React.FC = () => {
                   exit="exit"
                   layout
                 >
-                    <motion.div
-                      variants={productHover}
-                      className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-                      initial="rest"
-                      whileHover="hover"
-                      animate={hoveredProduct === product.id ? "hover" : "rest"}
-                      onMouseEnter={() => setHoveredProduct(product.id)}
-                      onMouseLeave={() => setHoveredProduct(null)}
-                    >
-                      <div className="relative overflow-hidden">
-                        <Link to={`/product/${product.id}`}>
-                          <motion.img 
-                            src={product.image} 
-                            alt={product.name}
-                            className="w-full h-64 object-cover"
-                            variants={imageVariants}
-                          />
-                        </Link>
-                        {product.discount && (
-                          <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
-                            {product.discount}% OFF
+                  <motion.div
+                    variants={productHover}
+                    className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                    initial="rest"
+                    whileHover="hover"
+                    animate={hoveredProduct === product.id ? "hover" : "rest"}
+                    onMouseEnter={() => setHoveredProduct(product.id)}
+                    onMouseLeave={() => setHoveredProduct(null)}
+                  >
+                    <div className="relative overflow-hidden">
+                      <Link to={`/product/${product.id}`}>
+                        <motion.img 
+                          src={product.styleImages.default.imageURL} 
+                          alt={product.productDisplayName}
+                          className="w-full h-64 object-cover"
+                          variants={imageVariants}
+                        />
+                      </Link>
+                      {product.discountedPrice !== product.price && (
+                        <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+                          {Math.round((1 - product.discountedPrice / product.price) * 100)}% OFF
+                        </div>
+                      )}
+                      <button 
+                        className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md hover:shadow-lg transition-shadow text-red-500"
+                        onClick={() => removeFromWishlist(product.id)}
+                        aria-label="Remove from wishlist"
+                      >
+                        <FaHeart className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center mb-1">
+                        <span className="text-xs font-medium bg-gray-100 text-gray-800 px-2 py-0.5 rounded">
+                          {product.gender}
+                        </span>
+                      </div>
+                      <Link to={`/product/${product.id}`} className="block">
+                        <h3 className="font-medium text-gray-900 mb-1">{product.productDisplayName}</h3>
+                        <div className="flex items-center mb-1">
+                          <div className="flex mr-1">
+                            {renderStarRating(product.myntraRating)}
                           </div>
-                        )}
-                        {product.isNew && (
-                          <div className="absolute top-2 left-2 bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded">
-                            NEW
-                          </div>
-                        )}
+                          <span className="text-xs text-gray-500">({product.myntraRating})</span>
+                        </div>
+                        <div className="flex items-center mb-3">
+                          <span className="font-bold text-gray-900">₹{product.price}</span>
+                          {product.discountedPrice !== product.price && (
+                            <span className="ml-2 text-sm text-gray-500 line-through">₹{product.discountedPrice}</span>
+                          )}
+                        </div>
+                      </Link>
+                      
+                      {/* Size Selection */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Select Size
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {product.styleOptions
+                            .filter(option => option.name === 'Size' && option.available)
+                            .map(option => (
+                              <button
+                                key={option.value}
+                                className={`px-3 py-1 ${
+                                  selectedSize[product.id] === option.value 
+                                    ? 'bg-black text-white border-black' 
+                                    : 'bg-white text-gray-700 border-gray-300 hover:border-black'
+                                }`}
+                                onClick={() => handleSizeChange(product.id, option.value)}
+                              >
+                                {option.value}
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex space-x-2">
                         <button 
-                          className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md hover:shadow-lg transition-shadow text-red-500"
+                          className="flex-1 py-2 bg-black text-white rounded-md font-medium hover:bg-gray-800 transition-colors flex items-center justify-center"
+                          onClick={() => addToCart(product.id)}
+                        >
+                          <FaShoppingBag className="mr-2 h-4 w-4" />
+                          Add to Cart
+                        </button>
+                        <button 
+                          className="p-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
                           onClick={() => removeFromWishlist(product.id)}
                           aria-label="Remove from wishlist"
                         >
-                          <FaHeart className="h-4 w-4" />
+                          <FaTrashAlt className="h-4 w-4" />
                         </button>
                       </div>
-                      <div className="p-4">
-                        <div className="flex items-center mb-1">
-                          <span className="text-xs font-medium bg-gray-100 text-gray-800 px-2 py-0.5 rounded">
-                            {product.gender}
-                          </span>
-                        </div>
-                        <Link to={`/product/${product.id}`} className="block">
-                          <h3 className="font-medium text-gray-900 mb-1">{product.name}</h3>
-                          <div className="flex items-center mb-1">
-                            <div className="flex mr-1">
-                              {renderStarRating(product.rating)}
-                            </div>
-                            <span className="text-xs text-gray-500">({product.reviews})</span>
-                          </div>
-                          <div className="flex items-center mb-3">
-                            <span className="font-bold text-gray-900">${product.price}</span>
-                            {product.originalPrice && (
-                              <span className="ml-2 text-sm text-gray-500 line-through">${product.originalPrice}</span>
-                            )}
-                          </div>
-                        </Link>
-                        
-                        {/* Size Selection */}
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Select Size
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            {product.sizes.map((size: string) => (
-                              <button
-                              key={size}
-                              className={`px-3 py-1 ${
-                                selectedSize[product.id] === size 
-                                  ? 'bg-black text-white border-black' 
-                                  : 'bg-white text-gray-700 border-gray-300 hover:border-black'
-                              }`}
-                                onClick={() => handleSizeChange(product.id, size)}
-                              >
-                                {size}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        {/* Action Buttons */}
-                        <div className="flex space-x-2">
-                          <button 
-                            className="flex-1 py-2 bg-black text-white rounded-md font-medium hover:bg-gray-800 transition-colors flex items-center justify-center"
-                            onClick={() => addToCart(product.id)}
-                          >
-                            <FaShoppingBag className="mr-2 h-4 w-4" />
-                            Add to Cart
-                          </button>
-                          <button 
-                            className="p-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
-                            onClick={() => removeFromWishlist(product.id)}
-                            aria-label="Remove from wishlist"
-                          >
-                            <FaTrashAlt className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
+                    </div>
                   </motion.div>
+                </motion.div>
               ))}
             </AnimatePresence>
           </motion.div>

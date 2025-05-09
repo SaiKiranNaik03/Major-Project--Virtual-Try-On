@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import VirtualTryOn from './VirtualTryOnNew';
+import axios from 'axios';
+import TryOnDialog from '../components/TryOnDialog';
 
 // Icons
-import { FaStar, FaStarHalfAlt, FaRegStar, FaShoppingCart, FaHeart, FaShare, FaChevronRight } from 'react-icons/fa';
+import { FaStar, FaStarHalfAlt, FaRegStar, FaShoppingCart, FaHeart, FaShare, FaChevronRight, FaTruck, FaUndo, FaExchangeAlt, FaTimes, FaCamera } from 'react-icons/fa';
 import { HiOutlinePlus, HiOutlineMinus } from 'react-icons/hi';
+import { GiTShirt } from 'react-icons/gi';
 
 // Import product data
 import productData from '../../../Dataset/1163.json';
@@ -16,6 +21,61 @@ interface Review {
   date: string;
   comment: string;
   helpful: number;
+}
+
+interface Product {
+  id: number;
+  price: number;
+  discountedPrice: number;
+  productDisplayName: string;
+  brandName: string;
+  baseColour: string;
+  myntraRating: number;
+  articleNumber: string;
+  displayCategories: string;
+  season: string;
+  gender: string;
+  size_representation?: string;
+  productDescriptors: {
+    description: { value: string };
+    style_note: { value: string };
+    materials_care_desc: { value: string };
+  };
+  articleAttributes: {
+    Fit: string;
+    Occasion: string;
+  };
+  styleOptions: Array<{
+    name: string;
+    value: string;
+    available: boolean;
+  }>;
+  styleImages: {
+    default: { 
+      imageURL: string;
+      resolutions?: {
+        [key: string]: string;
+      };
+    };
+    back: { 
+      imageURL: string;
+      resolutions?: {
+        [key: string]: string;
+      };
+    };
+    front: { 
+      imageURL: string;
+      resolutions?: {
+        [key: string]: string;
+      };
+    };
+  };
+  brandUserProfile: {
+    image: string;
+  };
+  articleType: {
+    typeName: string;
+  };
 }
 
 interface RelatedProduct {
@@ -32,18 +92,28 @@ interface RelatedProduct {
 
 const ProductDetail: React.FC = () => {
   // Extract product info from JSON
-  const product = productData.data;
+  const product = productData.data as Product;
   const productID = productData.data.id;
   
   // State for product details
-  const [selectedColor, setSelectedColor] = useState<string>('blue');
+  const [selectedColor, setSelectedColor] = useState<string>(product.baseColour.toLowerCase());
   const [selectedSize, setSelectedSize] = useState<string>('L');
   const [quantity, setQuantity] = useState<number>(1);
   const [activeImage, setActiveImage] = useState<number>(0);
   const [isWishlist, setIsWishlist] = useState<boolean>(false);
+  const [isAddingToCart, setIsAddingToCart] = useState<boolean>(false);
+  const [isTryingOn, setIsTryingOn] = useState<boolean>(false);
   const [reviewFilter, setReviewFilter] = useState<string>('latest');
   const [showReviewForm, setShowReviewForm] = useState<boolean>(false);
   const [reviewRating, setReviewRating] = useState<number>(5);
+  const [showSizeGuide, setShowSizeGuide] = useState<boolean>(false);
+  const [showTryOn, setShowTryOn] = useState<boolean>(false);
+  const [personImage, setPersonImage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [tryOnResult, setTryOnResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [recommendedProducts, setRecommendedProducts] = useState<RelatedProduct[]>([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState<boolean>(true);
 
   // Product images from JSON
   const productImages = [
@@ -63,7 +133,10 @@ const ProductDetail: React.FC = () => {
   // Sizes available from JSON
   const sizes = product.styleOptions
     .filter(option => option.name === 'Size')
-    .map(option => option.value);
+    .map(option => ({
+      value: option.value,
+      available: option.available
+    }));
 
   // Reviews
   const reviews: Review[] = [
@@ -132,7 +205,7 @@ const ProductDetail: React.FC = () => {
       price: 1095,
       rating: 4.8,
       reviews: 64,
-      image: product.styleImages.default.resolutions['360X480'],
+      image: product.styleImages.default.resolutions?.['360X480'] || product.styleImages.default.imageURL,
       colors: ['#000080', '#000', '#4B0082'],
     },
     {
@@ -141,15 +214,122 @@ const ProductDetail: React.FC = () => {
       price: 780,
       rating: 4.8,
       reviews: 85,
-      image: product.styleImages.front.resolutions['360X480'],
+      image: product.styleImages.front.resolutions?.['360X480'] || product.styleImages.front.imageURL,
       colors: ['#000080', '#000', '#4B0082'],
     },
   ];
 
+  // Check if product is in wishlist on component mount
+  useEffect(() => {
+    const savedWishlist = localStorage.getItem('wishlist');
+    if (savedWishlist) {
+      const wishlistItems = JSON.parse(savedWishlist);
+      setIsWishlist(wishlistItems.includes(product.id));
+    }
+  }, [product.id]);
+
+  // Toggle wishlist
+  const toggleWishlist = () => {
+    const savedWishlist = localStorage.getItem('wishlist');
+    let wishlistItems: number[] = [];
+    
+    if (savedWishlist) {
+      wishlistItems = JSON.parse(savedWishlist);
+    }
+
+    if (isWishlist) {
+      // Remove from wishlist
+      wishlistItems = wishlistItems.filter(id => id !== product.id);
+      toast.success('Removed from wishlist');
+    } else {
+      // Add to wishlist
+      wishlistItems.push(product.id);
+      toast.success('Added to wishlist');
+    }
+
+    localStorage.setItem('wishlist', JSON.stringify(wishlistItems));
+    setIsWishlist(!isWishlist);
+  };
+
+  // Share product
+  const shareProduct = async () => {
+    const shareData = {
+      title: product.productDisplayName,
+      text: `Check out this ${product.brandName} ${product.productDisplayName} on our store!`,
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        toast.success('Product shared successfully!');
+      } else {
+        // Fallback for browsers that don't support Web Share API
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Product link copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast.error('Failed to share product');
+    }
+  };
+
+  // Try on product
+  const handleTryOn = () => {
+    setShowTryOn(true);
+  };
+
+  // Close try on modal
+  const closeTryOn = () => {
+    setShowTryOn(false);
+  };
+
+  // Add to cart
+  const handleAddToCart = () => {
+    if (!selectedSize) {
+      alert('Please select a size');
+      return;
+    }
+
+    setIsAddingToCart(true);
+
+    const cartItem = {
+      id: product.id,
+      name: product.productDisplayName,
+      price: product.price,
+      size: selectedSize,
+      quantity: quantity,
+      image: productImages[0],
+      brand: product.brandName,
+      color: product.baseColour
+    };
+
+    // Get existing cart items
+    const savedCart = localStorage.getItem('cart');
+    let cartItems = savedCart ? JSON.parse(savedCart) : [];
+    
+    // Check if item already exists in cart
+    const existingItemIndex = cartItems.findIndex(
+      (item: any) => item.id === cartItem.id && item.size === cartItem.size
+    );
+
+    if (existingItemIndex !== -1) {
+      // Update quantity if item exists
+      cartItems[existingItemIndex].quantity += cartItem.quantity;
+    } else {
+      // Add new item
+      cartItems.push(cartItem);
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('cart', JSON.stringify(cartItems));
+    // alert('Added to cart successfully!');
+    setIsAddingToCart(false);
+  };
+
   // Handlers
   const incrementQuantity = () => setQuantity(prev => prev + 1);
   const decrementQuantity = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
-  const toggleWishlist = () => setIsWishlist(prev => !prev);
   
   // Form handlers
   const [reviewName, setReviewName] = useState<string>('');
@@ -159,7 +339,7 @@ const ProductDetail: React.FC = () => {
   const handleReviewSubmit = () => {
     // Validation
     if (!reviewName || !reviewEmail || !reviewComment) {
-      alert('Please fill in all required fields');
+      // alert('Please fill in all required fields');
       return;
     }
     
@@ -226,8 +406,218 @@ const ProductDetail: React.FC = () => {
     return stars;
   };
 
+  // Handle person image upload
+  const handlePersonUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPersonImage(e.target?.result as string);
+        setError(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Convert image to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          const base64String = reader.result.split(',')[1];
+          resolve(base64String);
+        } else {
+          reject(new Error('Failed to convert file to base64'));
+        }
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  // Process try-on
+  const processTryOn = async () => {
+    if (!personImage) {
+      setError('Please upload your photo first');
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      // Convert person image to base64
+      const personImageBase64 = personImage.split(',')[1];
+      
+      // Get product image
+      const productImageResponse = await fetch(productImages[activeImage]);
+      const productImageBlob = await productImageResponse.blob();
+      const productImageBase64 = await fileToBase64(new File([productImageBlob], 'product.jpg'));
+
+      // API call to Segmind
+      const response = await axios.post(
+        import.meta.env.VITE_SEGMIND_API_ENDPOINT || 'https://api.segmind.com/v1/try-on-diffusion',
+        {
+          model_image: personImageBase64,
+          cloth_image: productImageBase64,
+          category: 'Upper body',
+          num_inference_steps: 35,
+          guidance_scale: 2,
+          seed: 50000,
+          base64: true
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': import.meta.env.VITE_SEGMIND_API_KEY || '',
+          },
+        }
+      );
+
+      if (response.data && response.data.image) {
+        const imageUrl = `data:image/jpeg;base64,${response.data.image}`;
+        setTryOnResult(imageUrl);
+      } else {
+        throw new Error('Invalid response from API');
+      }
+    } catch (err: any) {
+      console.error('API Error:', err);
+      setError(err.response?.data?.message || 'Failed to perform virtual try-on. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Reset try-on
+  const resetTryOn = () => {
+    setPersonImage(null);
+    setTryOnResult(null);
+    setError(null);
+  };
+
+  // Fetch recommendations when component mounts
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadRecommendations = async () => {
+      if (!product?.id) {
+        console.error('Product or product ID is undefined');
+        return;
+      }
+
+      if (isMounted) {
+        console.log('Fetching recommendations for product:', product.id);
+        await fetchRecommendedProducts();
+      }
+    };
+
+    loadRecommendations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [product?.id]);
+
+  // Function to fetch recommended products
+  const fetchRecommendedProducts = async () => {
+    if (!product || !product.id) {
+      console.error('Product or product ID is undefined');
+      return;
+    }
+
+    setIsLoadingRecommendations(true);
+    try {
+      console.log('Starting to fetch recommendations for product:', product.id);
+      
+      // Fetch the product image as a blob
+      console.log('Fetching product image from:', product.styleImages.default.imageURL);
+      const imageResponse = await fetch(product.styleImages.default.imageURL);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to fetch product image: ${imageResponse.status}`);
+      }
+      
+      const imageBlob = await imageResponse.blob();
+      console.log('Successfully fetched product image blob');
+      
+      const formData = new FormData();
+      formData.append('file', new File([imageBlob], `${product.id}.jpg`, { type: imageBlob.type }));
+
+      // POST the image to the backend
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      console.log('Sending request to:', `${apiUrl}/api/recommend`);
+      
+      const response = await fetch(`${apiUrl}/api/recommend`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('API Error:', errorData);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const recommendedIds = await response.json();
+      console.log('Received recommended IDs:', recommendedIds);
+
+      if (!Array.isArray(recommendedIds) || recommendedIds.length === 0) {
+        console.error('No recommended IDs received');
+        setRecommendedProducts([]);
+        toast.error('No recommendations available at the moment');
+        return;
+      }
+
+      const recommendedProducts: RelatedProduct[] = [];
+      for (const id of recommendedIds) {
+        try {
+          console.log(`Loading product data for ID: ${id}`);
+          // Import the JSON file directly
+          const productData = await import(`../../../Dataset/styles/${id}.json`);
+          console.log(`Successfully loaded product ${id}:`, productData);
+          
+          if (!productData || !productData.data) {
+            console.error(`Invalid product data for ID ${id}`);
+            continue;
+          }
+
+          const recProduct = productData.data;
+          const productInfo = {
+            id: recProduct.id,
+            name: recProduct.productDisplayName,
+            price: recProduct.price,
+            originalPrice: recProduct.discountedPrice !== recProduct.price ? recProduct.price : undefined,
+            discount: recProduct.discountedPrice !== recProduct.price 
+              ? Math.round((1 - recProduct.discountedPrice / recProduct.price) * 100) 
+              : undefined,
+            rating: recProduct.myntraRating || 0,
+            reviews: Math.floor(Math.random() * 100) + 1,
+            image: recProduct.styleImages.default.imageURL,
+            colors: [recProduct.baseColour.toLowerCase()]
+          };
+          console.log(`Processed product info for ID ${id}:`, productInfo);
+          recommendedProducts.push(productInfo);
+        } catch (error) {
+          console.error(`Error loading product ${id}:`, error);
+        }
+      }
+      
+      console.log('Final recommended products array:', recommendedProducts);
+      if (recommendedProducts.length > 0) {
+        setRecommendedProducts(recommendedProducts);
+      } else {
+        toast.error('No recommendations available at the moment');
+      }
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+      toast.error('Failed to load recommendations');
+    } finally {
+      setIsLoadingRecommendations(false);
+    }
+  };
+
   return (
-    <div className="bg-gray-50 min-h-screen pt-24 pb-16">
+    <div className="bg-white min-h-screen pt-24 pb-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="flex py-4 text-sm text-gray-500">
@@ -243,144 +633,157 @@ const ProductDetail: React.FC = () => {
         </nav>
 
         {/* Product Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
-          {/* Product Images */}
-          <motion.div 
-            className="flex flex-col-reverse md:flex-row gap-4"
-            initial="hidden"
-            animate="visible"
-            variants={fadeIn}
-          >
-            {/* Thumbnails */}
-            <div className="flex md:flex-col gap-2 mt-4 md:mt-0">
-              {productImages.map((img, index) => (
-                <motion.div 
-                  key={index}
-                  className={`cursor-pointer rounded-lg overflow-hidden border-2 ${
-                    activeImage === index ? 'border-black' : 'border-transparent'
-                  }`}
-                  onClick={() => setActiveImage(index)}
-                  whileHover="hover"
-                  variants={thumbnailHover}
-                >
-                  <img 
-                    src={img} 
-                    alt={`Product view ${index + 1}`} 
-                    className="w-16 h-16 md:w-20 md:h-20 object-cover"
-                  />
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Main Image */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Product Images and Description */}
+          <div>
+            {/* Product Images */}
             <motion.div 
-              className="flex-1 rounded-xl overflow-hidden bg-white"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
+              className="relative mb-5"
+              initial="hidden"
+              animate="visible"
+              variants={fadeIn}
             >
-              <img 
-                src={productImages[activeImage]} 
-                alt="ONE LIFE GRAPHIC T-SHIRT" 
-                className="w-full h-full object-cover"
-              />
-            </motion.div>
-          </motion.div>
+              {/* Wishlist and Share Buttons */}
+              <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+                <motion.button
+                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    isWishlist ? 'bg-red-50 text-red-500' : 'bg-white text-gray-600'
+                  } shadow-md`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={toggleWishlist}
+                >
+                  <FaHeart className={isWishlist ? 'fill-current' : ''} />
+                </motion.button>
+                <motion.button
+                  className="w-10 h-10 bg-white text-gray-600 rounded-full flex items-center justify-center shadow-md"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={shareProduct}
+                >
+                  <FaShare />
+                </motion.button>
+              </div>
 
-          {/* Product Info */}
+              {/* Main Image */}
+              <motion.div 
+                className="rounded-xl overflow-hidden bg-white"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <img 
+                  src={productImages[activeImage]} 
+                  alt={product.productDisplayName} 
+                  className="w-full h-[500px] object-contain"
+                />
+              </motion.div>
+
+              {/* Thumbnails */}
+              <div className="flex gap-2 justify-center">
+                {productImages.map((img, index) => (
+                  <motion.div 
+                    key={index}
+                    className={`cursor-pointer rounded-lg overflow-hidden border-2 ${
+                      activeImage === index ? 'border-black' : 'border-transparent'
+                    }`}
+                    onClick={() => setActiveImage(index)}
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <img 
+                      src={img} 
+                      alt={`Product view ${index + 1}`} 
+                      className="w-16 h-16 object-cover"
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Product Description */}
+            <motion.div 
+              variants={fadeIn}
+              className="bg-white rounded-xl p-6 pt-0 border border-gray-100"
+            >
+              <h3 className="text-xl font-bold mb-4">Product Description</h3>
+              <div className="prose max-w-none">
+                <div dangerouslySetInnerHTML={{ __html: product.productDescriptors.description.value }} />
+                <div className="mt-4" dangerouslySetInnerHTML={{ __html: product.productDescriptors.style_note.value }} />
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Right Column - Product Info */}
           <motion.div
             initial="hidden"
             animate="visible"
             variants={staggerContainer}
             className="flex flex-col"
           >
-            <motion.h1 
-              variants={fadeIn}
-              className="text-3xl md:text-4xl font-bold tracking-tight"
-            >
-              {product.productDisplayName}
-            </motion.h1>
+            <motion.div variants={fadeIn} className="mb-4">
+              <h2 className="text-sm text-gray-500">{product.brandName}</h2>
+              <h1 className="text-2xl font-bold tracking-tight mt-1">
+                {product.productDisplayName}
+              </h1>
+            </motion.div>
 
-            <motion.div 
-              variants={fadeIn}
-              className="flex items-center mt-2"
-            >
+            <motion.div variants={fadeIn} className="flex items-center mb-4">
               <div className="flex mr-2">
-                {renderStarRating(product.myntraRating || 4)}
+                {renderStarRating(product.myntraRating)}
               </div>
-              <span className="text-gray-600 text-sm">{product.myntraRating || 4} ({reviews.length} reviews)</span>
+              <span className="text-gray-600 text-sm">({product.myntraRating} rating)</span>
             </motion.div>
 
-            <motion.div 
-              variants={fadeIn}
-              className="mt-4 flex items-center"
-            >
-              <span className="text-2xl md:text-3xl font-bold">₹{product.price}</span>
-              {product.price !== product.discountedPrice && (
-                <>
-                  <span className="ml-3 text-lg text-gray-500 line-through">₹{product.price * 1.15}</span>
-                  <span className="ml-3 bg-red-100 text-red-700 px-2 py-1 rounded text-sm font-medium">-15%</span>
-                </>
-              )}
-            </motion.div>
-
-            <motion.p 
-              variants={fadeIn}
-              className="mt-6 text-gray-600"
-            >
-              {product.productDescriptors.description.value.replace(/<\/?p>|<\/?br>/g, '')}
-            </motion.p>
-
-            {/* Color Selection */}
-            <motion.div variants={fadeIn} className="mt-8">
-              <h3 className="font-medium mb-3">Color</h3>
-              <div className="flex space-x-3">
-                {colors.map(color => (
-                  <div 
-                    key={color.name}
-                    className={`relative cursor-pointer rounded-full transition-transform ${
-                      selectedColor === color.name ? 'transform scale-110' : ''
-                    }`}
-                    onClick={() => setSelectedColor(color.name)}
-                  >
-                    <div 
-                      className="w-8 h-8 rounded-full" 
-                      style={{ backgroundColor: color.hex }}
-                    ></div>
-                    {selectedColor === color.name && (
-                      <div className="absolute inset-0 rounded-full border-2 border-black"></div>
-                    )}
-                  </div>
-                ))}
+            <motion.div variants={fadeIn} className="mb-6">
+              <div className="flex items-center">
+                <span className="text-2xl font-bold">₹{product.price}</span>
+                {product.discountedPrice !== product.price && (
+                  <>
+                    <span className="ml-3 text-lg text-gray-500 line-through">₹{product.price}</span>
+                    <span className="ml-3 bg-red-100 text-red-700 px-2 py-1 rounded text-sm font-medium">
+                      {Math.round((1 - product.discountedPrice / product.price) * 100)}% OFF
+                    </span>
+                  </>
+                )}
               </div>
+              <p className="text-sm text-gray-500 mt-1">inclusive of all taxes</p>
             </motion.div>
 
             {/* Size Selection */}
-            <motion.div variants={fadeIn} className="mt-8">
+            <motion.div variants={fadeIn} className="mb-6">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="font-medium">Size</h3>
-                <button className="text-sm text-gray-600 underline">Size Guide</button>
+                <h3 className="font-medium text-base sm:text-lg">Select Size</h3>
+                <button 
+                  className="text-sm text-gray-600 underline"
+                  onClick={() => setShowSizeGuide(!showSizeGuide)}
+                >
+                  Size Guide
+                </button>
               </div>
-              <div className="flex space-x-3">
+
+              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2 sm:gap-2">
                 {sizes.map(size => (
                   <button
-                    key={size}
-                    className={`w-12 h-12 rounded-md border transition-all ${
-                      selectedSize === size 
+                    key={size.value}
+                    className={`h-12 w-12 sm:h-14 sm:w-14 rounded-full border text-sm sm:text-base transition-all ${
+                      selectedSize === size.value 
                         ? 'border-black bg-black text-white' 
-                        : 'border-gray-300 hover:border-gray-400'
+                        : size.available 
+                          ? 'border-gray-300 hover:border-gray-400' 
+                          : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                     }`}
-                    onClick={() => setSelectedSize(size)}
+                    onClick={() => size.available && setSelectedSize(size.value)}
+                    disabled={!size.available}
                   >
-                    {size}
+                    {size.value}
                   </button>
                 ))}
               </div>
             </motion.div>
 
             {/* Quantity */}
-            <motion.div variants={fadeIn} className="mt-8">
-              <h3 className="font-medium mb-3">Quantity</h3>
+            <motion.div variants={fadeIn} className="mb-6">
+              <h3 className="font-medium mb-2">Quantity</h3>
               <div className="flex items-center border border-gray-300 rounded-md w-32">
                 <button 
                   className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-black"
@@ -399,48 +802,66 @@ const ProductDetail: React.FC = () => {
             </motion.div>
 
             {/* Action Buttons */}
-            <motion.div variants={fadeIn} className="mt-8 flex flex-col sm:flex-row gap-4">
-              {product.otherFlags?.some(flag => flag.name === 'isTryAndBuyEnabled' && flag.value === 'true') && (
+            <motion.div variants={fadeIn} className="mb-6">
+              <div className="flex space-x-4">
                 <motion.button
-                  className="flex-1 bg-black text-white py-3 px-6 rounded-md font-medium flex items-center justify-center"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  className={`w-full bg-black text-white py-3 px-6 rounded-md font-medium flex items-center justify-center ${
+                    isTryingOn ? 'opacity-75 cursor-not-allowed' : ''
+                  }`}
+                  whileHover={{ scale: isTryingOn ? 1 : 1.02 }}
+                  whileTap={{ scale: isTryingOn ? 1 : 0.98 }}
+                  onClick={handleTryOn}
+                  disabled={isTryingOn}
                 >
-                  Try-On
+                  <GiTShirt className="mr-2" />
+                  Try On
                 </motion.button>
-              )}
-              <motion.button
-                className="flex-1 bg-black text-white py-3 px-6 rounded-md font-medium flex items-center justify-center"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <FaShoppingCart className="mr-2" />
-                Add to Cart
-              </motion.button>
-              <motion.button
-                className={`w-12 h-12 rounded-md flex items-center justify-center ${
-                  isWishlist ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-600'
-                }`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={toggleWishlist}
-              >
-                <FaHeart className={isWishlist ? 'fill-current' : ''} />
-              </motion.button>
-              <motion.button
-                className="w-12 h-12 bg-gray-100 text-gray-600 rounded-md flex items-center justify-center"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FaShare />
-              </motion.button>
+                <motion.button
+                  className={`w-full bg-black text-white py-3 px-6 rounded-md font-medium flex items-center justify-center ${
+                    isAddingToCart ? 'opacity-75 cursor-not-allowed' : ''
+                  }`}
+                  whileHover={{ scale: isAddingToCart ? 1 : 1.02 }}
+                  whileTap={{ scale: isAddingToCart ? 1 : 0.98 }}
+                  onClick={handleAddToCart}
+                  disabled={isAddingToCart}
+                >
+                  <FaShoppingCart className="mr-2" />
+                  {isAddingToCart ? 'Adding...' : 'Add to Cart'}
+                </motion.button>
+              </div>
+            </motion.div>
+
+            {/* Product Features */}
+            <motion.div variants={fadeIn} className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                <FaTruck className="text-gray-600 mr-3" />
+                <div>
+                  <h4 className="font-medium">Free Delivery</h4>
+                  <p className="text-sm text-gray-500">On orders above ₹999</p>
+                </div>
+              </div>
+              <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                <FaUndo className="text-gray-600 mr-3" />
+                <div>
+                  <h4 className="font-medium">Easy Returns</h4>
+                  <p className="text-sm text-gray-500">30 days return policy</p>
+                </div>
+              </div>
+              <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                <FaExchangeAlt className="text-gray-600 mr-3" />
+                <div>
+                  <h4 className="font-medium">Exchange</h4>
+                  <p className="text-sm text-gray-500">Try & Buy available</p>
+                </div>
+              </div>
             </motion.div>
 
             {/* Product Details */}
-            <motion.div variants={fadeIn} className="mt-8 pt-8 border-t border-gray-200">
-              <div className="grid grid-cols-3 gap-5 text-sm">
+            <motion.div variants={fadeIn} className="border-t border-gray-200 pt-6">
+              <h3 className="font-medium mb-4">Product Details</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-500">SKU</p>
+                  <p className="text-gray-500">Article Number</p>
                   <p>{product.articleNumber}</p>
                 </div>
                 <div>
@@ -449,11 +870,7 @@ const ProductDetail: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-gray-500">Material</p>
-                  <p>{product.productDescriptors.materials_care_desc.value.replace(/<\/?p>|<\/?br>/g, ', ')}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Brand</p>
-                  <p>{product.brandName}</p>
+                  <p dangerouslySetInnerHTML={{ __html: product.productDescriptors.materials_care_desc.value }} />
                 </div>
                 <div>
                   <p className="text-gray-500">Fit</p>
@@ -462,6 +879,10 @@ const ProductDetail: React.FC = () => {
                 <div>
                   <p className="text-gray-500">Occasion</p>
                   <p>{product.articleAttributes.Occasion}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Season</p>
+                  <p>{product.season}</p>
                 </div>
               </div>
             </motion.div>
@@ -474,73 +895,93 @@ const ProductDetail: React.FC = () => {
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
           variants={staggerContainer}
-          className="mb-16"
+          className="mb-8 p-6"
         >
           <motion.h2 
             variants={fadeIn}
-            className="text-2xl font-bold mb-8"
+            className="text-2xl font-bold mb-2"
           >
-            More {product.brandName} {product.articleType.typeName}
+            Recommended Products
           </motion.h2>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-            {relatedProducts.map((product,) => (
-              <motion.div
-                key={product.id}
-                variants={fadeIn}
-                className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="relative">
-                  <img 
-                    src={product.image} 
-                    alt={product.name} 
-                    className="w-full h-64 object-cover"
-                  />
+          {isLoadingRecommendations ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+            </div>
+          ) : recommendedProducts.length > 0 ? (
+            <motion.div
+              className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+            >
+                {recommendedProducts.map((product) => (
+                  <motion.div
+                    variants={fadeIn}
+                  className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col h-[420px] group relative overflow-hidden border border-gray-100"
+                >
+                  {/* Discount Badge */}
                   {product.discount && (
-                    <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                    <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded z-10">
                       -{product.discount}%
                     </div>
                   )}
-                  <button className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-600 hover:text-red-500 transition-colors">
-                    <FaHeart />
-                  </button>
-                </div>
-                
-                <div className="p-4">
-                  <h3 className="font-medium">{product.name}</h3>
-                  <div className="flex items-center mt-1">
-                    <div className="flex text-xs text-yellow-400">
-                      {renderStarRating(product.rating)}
+                  {/* Product Image */}
+                  <div className="relative h-56 w-full overflow-hidden flex items-center justify-center bg-gray-50">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 rounded-t-xl"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://via.placeholder.com/300x400?text=Image+Not+Found';
+                        }}
+                      />
+                        </div>
+                  {/* Product Info */}
+                    <div className="flex-1 flex flex-col p-4">
+                    <h3 className="font-semibold text-base line-clamp-2 mb-1 text-gray-900 group-hover:text-blue-700 transition-colors">{product.name}</h3>
+                    {/* Rating and reviews */}
+                    <div className="flex items-center mt-1 mb-2">
+                        <div className="flex text-xs text-yellow-400">
+                          {renderStarRating(product.rating)}
+                        </div>
+                        <span className="text-xs text-gray-500 ml-1">({product.reviews})</span>
+                      </div>
+                    {/* Price */}
+                    <div className="mt-1 flex items-center">
+                      <span className="font-bold text-lg text-black">₹{product.price}</span>
+                        {product.originalPrice && (
+                          <span className="ml-2 text-sm text-gray-500 line-through">
+                            ₹{product.originalPrice}
+                          </span>
+                        )}
+                      </div>
+                    {/* Color Swatches */}
+                      <div className="mt-3 flex space-x-1">
+                        {product.colors.map((color, i) => (
+                          <div
+                            key={i}
+                            className="w-4 h-4 rounded-full border border-gray-300"
+                            style={{ backgroundColor: color }}
+                          ></div>
+                        ))}
+                      </div>
+                    {/* View Details Button */}
+                      <Link
+                        to={`/product/${product.id}`}
+                      className="mt-auto w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-sm font-medium transition-colors block text-center shadow-sm group-hover:bg-blue-200 group-hover:text-blue-900"
+                      >
+                        View Details
+                      </Link>
                     </div>
-                    <span className="text-xs text-gray-500 ml-1">({product.reviews})</span>
-                  </div>
-                  
-                  <div className="mt-2 flex items-center">
-                    <span className="font-bold">₹{product.price}</span>
-                    {product.originalPrice && (
-                      <span className="ml-2 text-sm text-gray-500 line-through">
-                        ₹{product.originalPrice}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="mt-3 flex space-x-1">
-                    {product.colors.map((color, i) => (
-                      <div 
-                        key={i}
-                        className="w-4 h-4 rounded-full border border-gray-300"
-                        style={{ backgroundColor: color }}
-                      ></div>
-                    ))}
-                  </div>
-                  
-                  <button className="mt-3 w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded text-sm font-medium transition-colors">
-                    Quick View
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                  </motion.div>
+                ))}
+            </motion.div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No recommendations available at the moment
+            </div>
+          )}
         </motion.section>
 
         {/* Reviews Section */}
@@ -702,6 +1143,52 @@ const ProductDetail: React.FC = () => {
             </button>
           </div>
         </motion.section>
+
+        {/* Size Guide Modal */}
+        <AnimatePresence>
+          {showSizeGuide && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+              onClick={() => setShowSizeGuide(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-xl p-6 max-w-2xl w-full"
+                onClick={e => e.stopPropagation()}
+              >
+                <h3 className="text-xl font-bold mb-4">Size Guide</h3>
+                {product.size_representation && (
+                  <img 
+                    src={product.size_representation} 
+                    alt="Size Guide" 
+                    className="w-full rounded-lg"
+                  />
+                )}
+                <button
+                  className="mt-4 w-full py-2 bg-black text-white rounded-md"
+                  onClick={() => setShowSizeGuide(false)}
+                >
+                  Close
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Try On Dialog */}
+        <TryOnDialog
+          isOpen={showTryOn}
+          onClose={closeTryOn}
+          productImage={productImages[activeImage]}
+          productName={product.productDisplayName}
+          onAddToCart={handleAddToCart}
+          price={product.price}
+        />
       </div>
     </div>
   );

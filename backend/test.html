@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Image Recommendations</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .preview {
+            max-width: 300px;
+            margin: 10px 0;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .recommended-image {
+            width: 150px;
+            margin: 5px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Test Image Recommendations</h2>
+        <form id="uploadForm">
+            <input type="file" id="imageInput" accept="image/*" required>
+            <button type="submit">Get Recommendations</button>
+        </form>
+        
+        <div id="preview">
+            <h3>Selected Image:</h3>
+            <img id="previewImage" class="preview" style="display: none;">
+        </div>
+
+        <div id="results" class="results">
+            <h3>Recommended Products:</h3>
+            <div id="recommendedProducts"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const imageInput = document.getElementById('imageInput');
+        const previewImage = document.getElementById('previewImage');
+        const recommendedProducts = document.getElementById('recommendedProducts');
+
+        // Preview selected image
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    previewImage.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const file = imageInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('http://localhost:8000/api/recommend', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const recommendedIds = await response.json();
+                console.log('Recommended IDs:', recommendedIds);
+
+                // Display recommended products
+                recommendedProducts.innerHTML = '';
+                recommendedIds.forEach(id => {
+                    const img = document.createElement('img');
+                    img.src = `http://localhost:8000/ML/${id}.jpg`;
+                    img.className = 'recommended-image';
+                    img.alt = `Product ${id}`;
+                    recommendedProducts.appendChild(img);
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error getting recommendations: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html> 

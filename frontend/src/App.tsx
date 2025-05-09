@@ -4,7 +4,7 @@ import Hero from './components/Hero';
 import NewArrivals from './components/NewArrivals';
 import Categories from './components/Categories';
 import Footer from './components/Footer';
-import LatestArrivals from './components/LatestArrivals';
+import LatestArrivals from './components/Onsale';
 import FeaturedCategories from './components/FeaturedCategories';
 // import VirtualTryOn from './pages/VirtualTryOn';
 import Cart from './pages/Cart';
@@ -40,8 +40,8 @@ function App() {
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
-            {/* <Route path="/try-on" element={<VirtualTryOn />} /> */}
-            <Route path="/try-on" element={<VirtualTryOnNew />} />
+            {/* <Route path="/try" element={<VirtualTryOn />} /> */}
+            <Route path="/try-on" element={<VirtualTryOnNew/>} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/casual" element={<CasualCollectiont />} />
             <Route path="/men" element={<MenCollection />} />
