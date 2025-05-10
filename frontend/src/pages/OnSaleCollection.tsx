@@ -750,6 +750,7 @@ const OnSaleCollection: React.FC = () => {
             {/* Sort and Results Count */}
             <div className="bg-white rounded-xl p-4 mb-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center">
               <div className="mb-4 sm:mb-0">
+                <h1 className="text-[25px] font-bold text-gray-800">On Sale</h1>
                 <p className="text-gray-500">Showing {indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, products.length)} of {products.length} products</p>
               </div>
               <div className="flex items-center">
@@ -776,7 +777,7 @@ const OnSaleCollection: React.FC = () => {
 
             {/* Products Grid */}
             <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
               initial="hidden"
               animate="visible"
               variants={staggerContainer}
@@ -831,9 +832,9 @@ const OnSaleCollection: React.FC = () => {
                         <span className="text-xs text-gray-500">({product.reviews})</span>
                       </div>
                       <div className="flex items-center">
-                        <span className="font-bold text-gray-900">${product.price}</span>
+                        <span className="font-bold text-gray-900">₹{product.price}</span>
                         {product.originalPrice && (
-                          <span className="ml-2 text-sm text-gray-500 line-through">${product.originalPrice}</span>
+                          <span className="ml-2 text-sm text-gray-500 line-through">₹{product.originalPrice}</span>
                         )}
                       </div>
                     </Link>

@@ -48,7 +48,7 @@ const Hero = () => {
               transition={{ delay: 0.6 }}
               className="bg-black text-[20px] text-white px-10 py-4 rounded-full hover:bg-gray-800 transition-colors"
             >
-              <Link to="/casual">Shop Now</Link>
+              <Link to="/try-on">Try-On</Link>
               
             </motion.button>
 
@@ -101,11 +101,12 @@ const Hero = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex justify-between items-center grayscale">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Versace_Logo.svg/2560px-Versace_Logo.svg.png" alt="Versace" className="h-12" />
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Zara_Logo.svg/2560px-Zara_Logo.svg.png" alt="Zara" className="h-12" />
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/1960s_Gucci_Logo.svg/2560px-1960s_Gucci_Logo.svg.png" alt="Gucci" className="h-12" />
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Prada_Logo.svg/2560px-Prada_Logo.svg.png" alt="Prada" className="h-12" />
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Calvin_Klein_logo.svg/2560px-Calvin_Klein_logo.svg.png" alt="Calvin Klein" className="h-12" />
+          <img src="levis.png" alt="Levi's" className="h-10" />
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Zara_Logo.svg/2560px-Zara_Logo.svg.png" alt="Zara" className="h-8" />
+          <img src="dior.svg" alt="Dior" className="h-6 font-bold" />
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/1960s_Gucci_Logo.svg/2560px-1960s_Gucci_Logo.svg.png" alt="Gucci" className="h-8" />
+          <img src="prada.png" alt="Prada" className="h-8" />
+          <img src="Ck.svg" alt="Calvin Klein" className="h-6 font-bold" />
         </div>
       </div>
     </div>

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import api from '../config/axios';
 
 // Icons
 import { 
@@ -15,171 +17,116 @@ import {
   FaHeart
 } from 'react-icons/fa';
 
-// Sample product data - Men's collection
-const products = [
-  {
-    id: 1,
-    name: 'Men\'s Classic Fit Shirt',
-    price: 120,
-    originalPrice: 150,
-    discount: 20,
-    rating: 4.5,
-    reviews: 42,
-    image: 'https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#6B8E23', '#4682B4'],
-    sizes: ['S', 'M', 'L', 'XL'],
-    category: 'Shirts',
-    style: 'Casual',
-    gender: 'Men'
-  },
-  {
-    id: 2,
-    name: 'Men\'s Slim Fit Jeans',
-    price: 95,
-    rating: 4.7,
-    reviews: 56,
-    image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#1E3A8A', '#8B4513'],
-    sizes: ['30', '32', '34', '36'],
-    category: 'Jeans',
-    style: 'Casual',
-    gender: 'Men'
-  },
-  {
-    id: 3,
-    name: 'Men\'s Wool Blazer',
-    price: 180,
-    originalPrice: 220,
-    discount: 18,
-    rating: 4.1,
-    reviews: 28,
-    image: 'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#D3D3D3', '#000080', '#8B0000'],
-    sizes: ['S', 'M', 'L'],
-    category: 'Blazers',
-    style: 'Formal',
-    gender: 'Men'
-  },
-  {
-    id: 4,
-    name: 'Men\'s Casual Polo',
-    price: 110,
-    rating: 4.8,
-    reviews: 64,
-    image: 'https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#FFF', '#000', '#4B0082'],
-    sizes: ['S', 'M', 'L', 'XL', 'XXL'],
-    category: 'Polos',
-    style: 'Casual',
-    gender: 'Men'
-  },
-  {
-    id: 5,
-    name: 'Men\'s Chino Shorts',
-    price: 85,
-    originalPrice: 100,
-    discount: 15,
-    rating: 4.3,
-    reviews: 37,
-    image: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#FFF', '#FFD700'],
-    sizes: ['30', '32', '34', '36'],
-    category: 'Shorts',
-    style: 'Casual',
-    gender: 'Men'
-  },
-  {
-    id: 6,
-    name: 'Men\'s Graphic T-shirt',
-    price: 75,
-    rating: 4.6,
-    reviews: 52,
-    image: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#FFF', '#FF6347'],
-    sizes: ['S', 'M', 'L', 'XL'],
-    category: 'T-shirts',
-    style: 'Casual',
-    gender: 'Men'
-  },
-  {
-    id: 7,
-    name: 'Men\'s Zip-up Hoodie',
-    price: 160,
-    originalPrice: 190,
-    discount: 16,
-    rating: 4.4,
-    reviews: 45,
-    image: 'https://images.unsplash.com/photo-1578768079050-7b3a5ec23744?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#808080', '#8B4513'],
-    sizes: ['M', 'L', 'XL', 'XXL'],
-    category: 'Hoodies',
-    style: 'Casual',
-    gender: 'Men'
-  },
-  {
-    id: 8,
-    name: 'Men\'s Formal Trousers',
-    price: 90,
-    rating: 4.2,
-    reviews: 31,
-    image: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#1F2937', '#4B5563'],
-    sizes: ['30', '32', '34', '36'],
-    category: 'Trousers',
-    style: 'Formal',
-    gender: 'Men'
-  },
-  {
-    id: 9,
-    name: 'Men\'s Denim Jacket',
-    price: 115,
-    originalPrice: 140,
-    discount: 18,
-    rating: 4.7,
-    reviews: 58,
-    image: 'https://images.unsplash.com/photo-1516257984-b1b4d707412e?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#1E3A8A', '#4169E1'],
-    sizes: ['S', 'M', 'L', 'XL'],
-    category: 'Jackets',
-    style: 'Casual',
-    gender: 'Men'
-  }
-];
+// Product interface based on JSON structure
+interface Product {
+  id: number;
+  price: number;
+  discountedPrice: number;
+  productDisplayName: string;
+  brandName: string;
+  baseColour: string;
+  gender: string;
+  usage: string;
+  styleImages: {
+    default: {
+      imageURL: string;
+    };
+  };
+  articleType: {
+    typeName: string;
+  };
+  masterCategory: {
+    typeName: string;
+  };
+  subCategory: {
+    typeName: string;
+  };
+}
 
-// Filter options
-const categories = ['T-shirts', 'Shirts', 'Jeans', 'Trousers', 'Shorts', 'Blazers', 'Jackets', 'Hoodies', 'Polos'];
-const sizes = ['S', 'M', 'L', 'XL', 'XXL', '30', '32', '34', '36', '38', '40'];
-const styles = ['Casual', 'Formal', 'Party', 'Sport'];
-const colors = [
-  { name: 'Black', hex: '#000000' },
-  { name: 'White', hex: '#FFFFFF' },
-  { name: 'Navy', hex: '#000080' },
-  { name: 'Blue', hex: '#2196F3' },
-  { name: 'Gray', hex: '#808080' },
-  { name: 'Green', hex: '#4CAF50' },
-  { name: 'Brown', hex: '#8B4513' },
-  { name: 'Burgundy', hex: '#800020' }
-];
+interface ProductsResponse {
+  success: boolean;
+  data: Product[];
+  total: number;
+  totalPages: number;
+}
+
+// Add color mapping for visual representation
+const colorMap: { [key: string]: string } = {
+  'Black': '#000000',
+  'White': '#FFFFFF',
+  'Blue': '#0000FF',
+  'Red': '#FF0000',
+  'Green': '#008000',
+  'Yellow': '#FFFF00',
+  'Purple': '#800080',
+  'Pink': '#FFC0CB',
+  'Orange': '#FFA500',
+  'Brown': '#A52A2A',
+  'Grey': '#808080',
+  'Navy': '#000080',
+  'Beige': '#F5F5DC',
+  'Maroon': '#800000',
+  'Teal': '#008080',
+  'Olive': '#808000',
+  'Lavender': '#E6E6FA',
+  'Cyan': '#00FFFF',
+  'Magenta': '#FF00FF',
+  'Gold': '#FFD700',
+  'Silver': '#C0C0C0',
+  'Khaki': '#F0E68C',
+  'Indigo': '#4B0082',
+  'Turquoise': '#40E0D0',
+  'Coral': '#FF7F50',
+  'Cream': '#FFFDD0',
+  'Mint': '#98FF98',
+  'Peach': '#FFDAB9',
+  'Tan': '#D2B48C',
+  'Wine': '#722F37'
+};
 
 const MenCollection: React.FC = () => {
-  // State for filters
+  // State for products and filters
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<[number, number]>([50, 300]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [sortBy, setSortBy] = useState<string>('popular');
   const [showMobileFilters, setShowMobileFilters] = useState<boolean>(false);
   const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
   const [wishlist, setWishlist] = useState<number[]>([]);
 
-  // Pagination
-  const productsPerPage = 9;
-  const totalPages = Math.ceil(products.length / productsPerPage);
-  const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
+  // Fetch products using React Query
+  const { data: productsData, isLoading } = useQuery<ProductsResponse>({
+    queryKey: ['menProducts', currentPage, sortBy, selectedCategories, selectedColors, selectedBrands, priceRange],
+    queryFn: async () => {
+      const response = await api.get<ProductsResponse>('/products/men', {
+        params: {
+          page: currentPage,
+          limit: 12,
+          sort: sortBy,
+          categories: selectedCategories.join(','),
+          colors: selectedColors.join(','),
+          brands: selectedBrands.join(','),
+          minPrice: priceRange[0],
+          maxPrice: priceRange[1],
+          variety: true
+        }
+      });
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep data in cache for 30 minutes
+  });
+
+  const products = productsData?.data || [];
+  const totalPages = productsData?.totalPages || 1;
+  const totalProducts = productsData?.total || 0;
+
+  // Get unique values for filters
+  const categories = Array.from(new Set(products.map((p: Product) => p.articleType.typeName)));
+  const colors = Array.from(new Set(products.map((p: Product) => p.baseColour)));
+  const brands = Array.from(new Set(products.map((p: Product) => p.brandName)));
 
   // Toggle wishlist
   const toggleWishlist = (productId: number) => {
@@ -207,76 +154,47 @@ const MenCollection: React.FC = () => {
     }
   };
 
-  const handleSizeChange = (size: string) => {
-    if (selectedSizes.includes(size)) {
-      setSelectedSizes(selectedSizes.filter(s => s !== size));
+  const handleBrandChange = (brand: string) => {
+    if (selectedBrands.includes(brand)) {
+      setSelectedBrands(selectedBrands.filter(b => b !== brand));
     } else {
-      setSelectedSizes([...selectedSizes, size]);
+      setSelectedBrands([...selectedBrands, brand]);
     }
   };
 
-  const handleStyleChange = (style: string) => {
-    if (selectedStyles.includes(style)) {
-      setSelectedStyles(selectedStyles.filter(s => s !== style));
-    } else {
-      setSelectedStyles([...selectedStyles, style]);
-    }
-  };
-
+  // Update price range handling
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const newValue = parseInt(e.target.value);
     const newPriceRange = [...priceRange] as [number, number];
-    newPriceRange[index] = newValue;
     
-    // Ensure min <= max
-    if (index === 0 && newValue > priceRange[1]) {
-      newPriceRange[1] = newValue;
-    } else if (index === 1 && newValue < priceRange[0]) {
-      newPriceRange[0] = newValue;
+    // Ensure min doesn't exceed max and vice versa
+    if (index === 0) {
+      newPriceRange[0] = Math.min(newValue, priceRange[1]);
+    } else {
+      newPriceRange[1] = Math.max(newValue, priceRange[0]);
     }
     
     setPriceRange(newPriceRange);
   };
 
+  // Get min and max prices from products
+  const minPrice = Math.min(...products.map(p => p.price));
+  const maxPrice = Math.max(...products.map(p => p.price));
+
   const clearAllFilters = () => {
     setSelectedCategories([]);
-    setPriceRange([50, 300]);
     setSelectedColors([]);
-    setSelectedSizes([]);
-    setSelectedStyles([]);
+    setSelectedBrands([]);
+    const prices = products.map((p: Product) => p.price);
+    setPriceRange([Math.min(...prices), Math.max(...prices)]);
   };
 
-  // Apply filters
-  const applyFilters = () => {
-    // In a real app, this would filter the products based on selected filters
-    console.log('Applying filters:', {
-      categories: selectedCategories,
-      priceRange,
-      colors: selectedColors,
-      sizes: selectedSizes,
-      styles: selectedStyles
-    });
-    
-    // Reset to first page when filters change
-    setCurrentPage(1);
-  };
-
-  // Render star rating
-  const renderStarRating = (rating: number) => {
+  // Render star rating (placeholder since we don't have ratings in the JSON)
+  const renderStarRating = () => {
     const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-    
     for (let i = 1; i <= 5; i++) {
-      if (i <= fullStars) {
-        stars.push(<FaStar key={i} className="text-yellow-400" />);
-      } else if (i === fullStars + 1 && hasHalfStar) {
-        stars.push(<FaStarHalfAlt key={i} className="text-yellow-400" />);
-      } else {
         stars.push(<FaRegStar key={i} className="text-yellow-400" />);
-      }
     }
-    
     return stars;
   };
 
@@ -310,20 +228,42 @@ const MenCollection: React.FC = () => {
     rest: { scale: 1, transition: { duration: 0.5 } }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-gray-50 min-h-screen pt-24 pb-16">
+    <div className="bg-white min-h-screen pt-24 pb-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Hero Section */}
+        {/* <div className="relative mb-12 overflow-hidden rounded-2xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-black/40 z-10"></div>
+          <img 
+            src="https://images.unsplash.com/photo-1617137968427-85924c800a22?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80" 
+            alt="Men's Collection" 
+            className="w-full h-[400px] object-cover"
+          />
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-white text-center px-4">
+            <h1 className="text-5xl font-bold mb-4">Men's Collection</h1>
+            <p className="text-xl max-w-2xl">Discover the latest trends in men's fashion. From casual to formal, find your perfect style.</p>
+          </div>
+        </div> */}
+
         {/* Breadcrumb */}
-        <nav className="flex py-4 text-sm text-gray-500">
+        <nav className="flex py-4 text-sm text-gray-500 mb-8">
           <Link to="/" className="hover:text-black transition-colors">Home</Link>
           <FaChevronRight className="mx-2 mt-1" />
           <span className="text-black font-medium">Men</span>
         </nav>
 
         {/* Mobile Filter Button */}
-        <div className="lg:hidden mb-4">
+        <div className="lg:hidden mb-6">
           <button 
-            className="w-full py-3 bg-black text-white rounded-md flex items-center justify-center font-medium"
+            className="w-full py-3 bg-black text-white rounded-xl flex items-center justify-center font-medium shadow-lg hover:bg-gray-800 transition-all duration-300"
             onClick={() => setShowMobileFilters(true)}
           >
             <FaFilter className="mr-2" />
@@ -333,10 +273,10 @@ const MenCollection: React.FC = () => {
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Filters - Desktop */}
-          <div className="hidden lg:block w-64 flex-shrink-0">
-            <div className="bg-white rounded-xl p-6 shadow-sm sticky top-24">
+          <div className="hidden lg:block w-72 flex-shrink-0">
+            <div className="bg-white rounded-2xl p-6 shadow-lg sticky top-24 border border-gray-100">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-bold">Filters</h2>
+                <h2 className="text-xl font-bold">Filters</h2>
                 <button 
                   className="text-sm text-gray-500 hover:text-black transition-colors"
                   onClick={clearAllFilters}
@@ -346,61 +286,77 @@ const MenCollection: React.FC = () => {
               </div>
 
               {/* Categories */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-3">Category</h3>
-                <div className="space-y-2">
-                  {categories.map(category => (
-                    <label key={category} className="flex items-center cursor-pointer">
+              <div className="mb-8">
+                <h3 className="font-semibold mb-4 text-lg">Category</h3>
+                <div className="space-y-3">
+                  {categories.map((category: string) => (
+                    <label key={category} className="flex items-center cursor-pointer group">
                       <input 
                         type="checkbox" 
                         className="form-checkbox h-5 w-5 text-black rounded border-gray-300 focus:ring-black"
                         checked={selectedCategories.includes(category)}
                         onChange={() => handleCategoryChange(category)}
                       />
-                      <span className="ml-2 text-gray-700">{category}</span>
+                      <span className="ml-3 text-gray-700 group-hover:text-black transition-colors">{category}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               {/* Price Range */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-3">Price Range</h3>
+              <div className="mb-8">
+                <h3 className="font-semibold mb-4 text-lg">Price Range</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">${priceRange[0]}</span>
-                    <span className="text-sm text-gray-600">${priceRange[1]}</span>
+                    <span className="text-sm text-gray-600">₹{priceRange[0]}</span>
+                    <span className="text-sm text-gray-600">₹{priceRange[1]}</span>
                   </div>
-                  <div className="relative h-1 bg-gray-200 rounded-full">
+                  <div className="relative h-2 bg-gray-200 rounded-full">
                     <div 
-                      className="absolute h-1 bg-black rounded-full"
+                      className="absolute h-2 bg-grey rounded-full"
                       style={{ 
-                        left: `${(priceRange[0] - 50) / 2.5}%`, 
-                        right: `${100 - (priceRange[1] - 50) / 2.5}%` 
+                        left: `${((priceRange[0] - minPrice) / (maxPrice - minPrice)) * 100}%`, 
+                        right: `${100 - ((priceRange[1] - minPrice) / (maxPrice - minPrice)) * 100}%` 
                       }}
                     ></div>
+                    <input
+                      type="range"
+                      min={minPrice}
+                      max={maxPrice}
+                      value={priceRange[0]}
+                      onChange={(e) => handlePriceChange(e, 0)}
+                      className="absolute w-full h-2 opacity-0 cursor-pointer"
+                    />
+                    <input
+                      type="range"
+                      min={minPrice}
+                      max={maxPrice}
+                      value={priceRange[1]}
+                      onChange={(e) => handlePriceChange(e, 1)}
+                      className="absolute w-full h-2 opacity-0 cursor-pointer"
+                    />
                   </div>
                   <div className="flex space-x-4">
                     <div>
                       <label className="text-sm text-gray-600 block mb-1">Min</label>
                       <input 
                         type="number" 
-                        min="50" 
-                        max="300" 
+                        min={minPrice}
+                        max={maxPrice}
                         value={priceRange[0]} 
                         onChange={(e) => handlePriceChange(e, 0)}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-transparent"
                       />
                     </div>
                     <div>
                       <label className="text-sm text-gray-600 block mb-1">Max</label>
                       <input 
                         type="number" 
-                        min="50" 
-                        max="300" 
+                        min={minPrice}
+                        max={maxPrice}
                         value={priceRange[1]} 
                         onChange={(e) => handlePriceChange(e, 1)}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -408,54 +364,49 @@ const MenCollection: React.FC = () => {
               </div>
 
               {/* Colors */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-3">Colors</h3>
-                <div className="flex flex-wrap gap-2">
-                  {colors.map(color => (
-                    <button
-                      key={color.name}
-                      className={`w-8 h-8 rounded-full border-2 ${selectedColors.includes(color.name) ? 'border-black' : 'border-transparent'}`}
-                      style={{ backgroundColor: color.hex }}
-                      onClick={() => handleColorChange(color.name)}
-                      aria-label={`Select ${color.name} color`}
-                    />
-                  ))}
+              <div className="mb-8">
+                <h3 className="font-semibold mb-4 text-lg">Colors</h3>
+                <div className="flex flex-wrap gap-3">
+                  {colors.map((color: string) => {
+                    const colorHex = colorMap[color] || '#CCCCCC';
+                    return (
+                      <button
+                        key={color}
+                        className={`relative w-8 h-8 rounded-full transition-all duration-300 ${
+                          selectedColors.includes(color) 
+                            ? 'ring-2 ring-black ring-offset-2' 
+                            : 'hover:ring-2 hover:ring-gray-300'
+                        }`}
+                        style={{ backgroundColor: colorHex }}
+                        onClick={() => handleColorChange(color)}
+                        title={color}
+                      >
+                        {selectedColors.includes(color) && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Sizes */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-3">Size</h3>
-                <div className="flex flex-wrap gap-2">
-                  {sizes.map(size => (
-                    <button
-                      key={size}
-                      className={`px-3 py-1 border rounded-md text-sm ${
-                        selectedSizes.includes(size) 
-                          ? 'bg-black text-white border-black' 
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-black'
-                      }`}
-                      onClick={() => handleSizeChange(size)}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Styles */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-3">Style</h3>
-                <div className="space-y-2">
-                  {styles.map(style => (
-                    <label key={style} className="flex items-center cursor-pointer">
+              {/* Brands */}
+              <div className="mb-8">
+                <h3 className="font-semibold mb-4 text-lg">Brands</h3>
+                <div className="space-y-3">
+                  {brands.map((brand: string) => (
+                    <label key={brand} className="flex items-center cursor-pointer group">
                       <input 
                         type="checkbox" 
                         className="form-checkbox h-5 w-5 text-black rounded border-gray-300 focus:ring-black"
-                        checked={selectedStyles.includes(style)}
-                        onChange={() => handleStyleChange(style)}
+                        checked={selectedBrands.includes(brand)}
+                        onChange={() => handleBrandChange(brand)}
                       />
-                      <span className="ml-2 text-gray-700">{style}</span>
+                      <span className="ml-3 text-gray-700 group-hover:text-black transition-colors">{brand}</span>
                     </label>
                   ))}
                 </div>
@@ -463,193 +414,29 @@ const MenCollection: React.FC = () => {
 
               {/* Apply Filters Button */}
               <button 
-                className="w-full py-2 bg-black text-white rounded-md font-medium hover:bg-gray-800 transition-colors"
-                onClick={applyFilters}
+                className="w-full py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-all duration-300 shadow-lg"
+                onClick={() => {
+                  // Implement apply filters logic
+                }}
               >
                 Apply Filters
               </button>
             </div>
           </div>
 
-          {/* Mobile Filters */}
-          <AnimatePresence>
-            {showMobileFilters && (
-              <motion.div 
-                className="fixed inset-0 bg-black bg-opacity-50 z-50 lg:hidden"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <motion.div 
-                  className="absolute right-0 top-0 h-full w-4/5 max-w-md bg-white overflow-y-auto"
-                  initial={{ x: '100%' }}
-                  animate={{ x: 0 }}
-                  exit={{ x: '100%' }}
-                  transition={{ type: 'tween' }}
-                >
-                  <div className="p-6">
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-lg font-bold">Filters</h2>
-                      <button 
-                        className="text-gray-500 hover:text-black"
-                        onClick={() => setShowMobileFilters(false)}
-                      >
-                        <FaTimes className="h-5 w-5" />
-                      </button>
-                    </div>
-
-                    {/* Mobile filter content - same as desktop but in a slide-over panel */}
-                    {/* Categories */}
-                    <div className="mb-6">
-                      <h3 className="font-medium mb-3">Category</h3>
-                      <div className="space-y-2">
-                        {categories.map(category => (
-                          <label key={category} className="flex items-center cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              className="form-checkbox h-5 w-5 text-black rounded border-gray-300 focus:ring-black"
-                              checked={selectedCategories.includes(category)}
-                              onChange={() => handleCategoryChange(category)}
-                            />
-                            <span className="ml-2 text-gray-700">{category}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Price Range */}
-                    <div className="mb-6">
-                      <h3 className="font-medium mb-3">Price Range</h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">${priceRange[0]}</span>
-                          <span className="text-sm text-gray-600">${priceRange[1]}</span>
-                        </div>
-                        <div className="relative h-1 bg-gray-200 rounded-full">
-                          <div 
-                            className="absolute h-1 bg-black rounded-full"
-                            style={{ 
-                              left: `${(priceRange[0] - 50) / 2.5}%`, 
-                              right: `${100 - (priceRange[1] - 50) / 2.5}%` 
-                            }}
-                          ></div>
-                        </div>
-                        <div className="flex space-x-4">
-                          <div>
-                            <label className="text-sm text-gray-600 block mb-1">Min</label>
-                            <input 
-                              type="number" 
-                              min="50" 
-                              max="300" 
-                              value={priceRange[0]} 
-                              onChange={(e) => handlePriceChange(e, 0)}
-                              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm text-gray-600 block mb-1">Max</label>
-                            <input 
-                              type="number" 
-                              min="50" 
-                              max="300" 
-                              value={priceRange[1]} 
-                              onChange={(e) => handlePriceChange(e, 1)}
-                              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Colors */}
-                    <div className="mb-6">
-                      <h3 className="font-medium mb-3">Colors</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {colors.map(color => (
-                          <button
-                            key={color.name}
-                            className={`w-8 h-8 rounded-full border-2 ${selectedColors.includes(color.name) ? 'border-black' : 'border-transparent'}`}
-                            style={{ backgroundColor: color.hex }}
-                            onClick={() => handleColorChange(color.name)}
-                            aria-label={`Select ${color.name} color`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Sizes */}
-                    <div className="mb-6">
-                      <h3 className="font-medium mb-3">Size</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {sizes.map(size => (
-                          <button
-                            key={size}
-                            className={`px-3 py-1 border rounded-md text-sm ${
-                              selectedSizes.includes(size) 
-                                ? 'bg-black text-white border-black' 
-                                : 'bg-white text-gray-700 border-gray-300 hover:border-black'
-                            }`}
-                            onClick={() => handleSizeChange(size)}
-                          >
-                            {size}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Styles */}
-                    <div className="mb-6">
-                      <h3 className="font-medium mb-3">Style</h3>
-                      <div className="space-y-2">
-                        {styles.map(style => (
-                          <label key={style} className="flex items-center cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              className="form-checkbox h-5 w-5 text-black rounded border-gray-300 focus:ring-black"
-                              checked={selectedStyles.includes(style)}
-                              onChange={() => handleStyleChange(style)}
-                            />
-                            <span className="ml-2 text-gray-700">{style}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex space-x-4">
-                      <button 
-                        className="flex-1 py-2 border border-black text-black rounded-md font-medium hover:bg-gray-100 transition-colors"
-                        onClick={clearAllFilters}
-                      >
-                        Clear All
-                      </button>
-                      <button 
-                        className="flex-1 py-2 bg-black text-white rounded-md font-medium hover:bg-gray-800 transition-colors"
-                        onClick={() => {
-                          applyFilters();
-                          setShowMobileFilters(false);
-                        }}
-                      >
-                        Apply Filters
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* Main Content */}
           <div className="flex-1">
             {/* Sort and Results Count */}
-            <div className="bg-white rounded-xl p-4 mb-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div className="bg-white rounded-2xl p-6 mb-8 shadow-lg border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center">
               <div className="mb-4 sm:mb-0">
-                <p className="text-gray-500">Showing {indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, products.length)} of {products.length} products</p>
+              <h1 className="text-[20px] font-bold text-gray-800">Men's Collection</h1>
+                <p className="text-gray-600">Showing <span className="font-semibold text-black">{totalProducts}</span> products</p>
               </div>
               <div className="flex items-center">
-                <span className="text-gray-500 mr-2">Sort by:</span>
+                <span className="text-gray-600 mr-3">Sort by:</span>
                 <div className="relative">
                   <select 
-                    className="appearance-none bg-transparent border border-gray-300 rounded-md pl-3 pr-8 py-1 focus:outline-none focus:ring-1 focus:ring-black focus:border-black cursor-pointer"
+                    className="appearance-none bg-white border border-gray-300 rounded-xl pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent cursor-pointer"
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                   >
@@ -657,10 +444,9 @@ const MenCollection: React.FC = () => {
                     <option value="newest">Newest</option>
                     <option value="price-low">Price: Low to High</option>
                     <option value="price-high">Price: High to Low</option>
-                    <option value="rating">Highest Rated</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                    <FaChevronDown className="h-3 w-3" />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                    <FaChevronDown className="h-4 w-4" />
                   </div>
                 </div>
               </div>
@@ -668,16 +454,16 @@ const MenCollection: React.FC = () => {
 
             {/* Products Grid */}
             <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
               initial="hidden"
               animate="visible"
               variants={staggerContainer}
             >
-              {currentProducts.map((product) => (
+              {products.map((product: Product) => (
                 <motion.div
                   key={product.id}
                   variants={productHover}
-                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100"
                   initial="rest"
                   whileHover="hover"
                   animate={hoveredProduct === product.id ? "hover" : "rest"}
@@ -685,56 +471,47 @@ const MenCollection: React.FC = () => {
                   onMouseLeave={() => setHoveredProduct(null)}
                 >
                   <Link to={`/product/${product.id}`} className="block">
-                    <div className="relative overflow-hidden">
+                    <div className="relative overflow-hidden group">
                       <motion.img 
-                        src={product.image} 
-                        alt={product.name}
-                        className="w-full h-64 object-cover"
+                        src={product.styleImages.default.imageURL} 
+                        alt={product.productDisplayName}
+                        className="w-full h-80 object-cover group-hover:scale-110 transition-transform duration-500"
                         variants={imageVariants}
                       />
-                      {product.discount && (
-                        <div className="absolute top-2 left-2 bg-black text-white text-xs font-bold px-2 py-1 rounded">
-                          {product.discount}% OFF
+                      {product.discountedPrice < product.price && (
+                        <div className="absolute top-3 left-3 bg-black text-white text-sm font-bold px-3 py-1 rounded-full">
+                          {Math.round(((product.price - product.discountedPrice) / product.price) * 100)}% OFF
                         </div>
                       )}
                       <button 
-                        className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md hover:shadow-lg transition-shadow"
+                        className="absolute top-3 right-3 bg-white p-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110"
                         onClick={(e) => {
                           e.preventDefault();
                           toggleWishlist(product.id);
                         }}
                       >
-                        <FaHeart className={`h-4 w-4 ${wishlist.includes(product.id) ? 'text-red-500' : 'text-gray-400'}`} />
+                        <FaHeart className={`h-5 w-5 ${wishlist.includes(product.id) ? 'text-red-500' : 'text-gray-400'}`} />
                       </button>
                     </div>
                   </Link>
-                  <div className="p-4">
+                  <div className="p-5">
                     <Link to={`/product/${product.id}`} className="block">
-                      <h3 className="font-medium text-gray-900 mb-1">{product.name}</h3>
-                      <div className="flex items-center mb-1">
-                        <div className="flex mr-1">
-                          {renderStarRating(product.rating)}
+                      <h3 className="font-semibold text-gray-900 text-lg mb-2 line-clamp-2">{product.productDisplayName}</h3>
+                      <p className="text-sm text-gray-500 mb-2">{product.brandName}</p>
+                      <div className="flex items-center mb-3">
+                        <div className="flex mr-2">
+                          {renderStarRating()}
                         </div>
-                        <span className="text-xs text-gray-500">({product.reviews})</span>
                       </div>
                       <div className="flex items-center">
-                        <span className="font-bold text-gray-900">${product.price}</span>
-                        {product.originalPrice && (
-                          <span className="ml-2 text-sm text-gray-500 line-through">${product.originalPrice}</span>
+                        <span className="font-bold text-gray-900 text-lg">₹{product.discountedPrice}</span>
+                        {product.discountedPrice < product.price && (
+                          <span className="ml-2 text-sm text-gray-500 line-through">₹{product.price}</span>
                         )}
                       </div>
                     </Link>
-                    <div className="mt-3 flex items-center space-x-2">
-                      {product.colors.slice(0, 3).map((color, index) => (
-                        <div 
-                          key={index} 
-                          className="w-4 h-4 rounded-full border border-gray-300" 
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                      {product.colors.length > 3 && (
-                        <span className="text-xs text-gray-500">+{product.colors.length - 3} more</span>
-                      )}
+                    <div className="mt-3">
+                      <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{product.baseColour}</span>
                     </div>
                   </div>
                 </motion.div>
@@ -742,30 +519,44 @@ const MenCollection: React.FC = () => {
             </motion.div>
 
             {/* Pagination */}
-            <div className="mt-8 flex justify-center">
+            <div className="mt-12 flex justify-center">
               <nav className="flex items-center space-x-2">
                 <button 
-                  className="p-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 >
                   <FaChevronLeft className="h-4 w-4" />
                 </button>
-                {[...Array(totalPages)].map((_, index) => (
-                  <button
-                    key={index}
-                    className={`w-10 h-10 rounded-md ${
-                      currentPage === index + 1
-                        ? 'bg-black text-white'
-                        : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
-                    }`}
-                    onClick={() => setCurrentPage(index + 1)}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
+                {[...Array(totalPages)].map((_, index) => {
+                  const shouldShow = 
+                    index === 0 || 
+                    index === totalPages - 1 || 
+                    Math.abs(currentPage - (index + 1)) <= 1;
+
+                  if (!shouldShow) {
+                    if (index === 1 || index === totalPages - 2) {
+                      return <span key={index} className="px-3">...</span>;
+                    }
+                    return null;
+                  }
+
+                  return (
+                    <button
+                      key={index}
+                      className={`w-12 h-12 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        currentPage === index + 1
+                          ? 'bg-black text-white shadow-lg'
+                          : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
+                      }`}
+                      onClick={() => setCurrentPage(index + 1)}
+                    >
+                      {index + 1}
+                    </button>
+                  );
+                })}
                 <button 
-                  className="p-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 >

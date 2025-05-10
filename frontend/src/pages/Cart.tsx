@@ -8,7 +8,11 @@ import {
   FaTrashAlt, 
   FaMinus, 
   FaPlus, 
-  FaLongArrowAltRight 
+  FaLongArrowAltRight,
+  FaShoppingBag,
+  FaTag,
+  FaTruck,
+  FaLock
 } from 'react-icons/fa';
 
 // Sample cart data - this would normally come from your global state or API
@@ -90,7 +94,7 @@ const Cart: React.FC = () => {
     }
   };
 
-  // Animation variants
+  // Enhanced animation variants
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: { 
@@ -102,6 +106,11 @@ const Cart: React.FC = () => {
       opacity: 0,
       y: -20,
       transition: { duration: 0.3 }
+    },
+    hover: {
+      y: -5,
+      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+      transition: { duration: 0.2 }
     }
   };
 
@@ -116,7 +125,7 @@ const Cart: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen pt-24 pb-16">
+    <div className="bg-white min-h-screen pt-24 pb-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="flex py-4 text-sm text-gray-500">
@@ -127,15 +136,18 @@ const Cart: React.FC = () => {
 
         {/* Page Title */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">YOUR CART</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Shopping Cart</h1>
+          <p className="text-gray-600 mt-2">Review your items and proceed to checkout</p>
         </div>
 
         {cartItems.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 shadow-sm text-center">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl p-12 shadow-sm text-center border border-gray-100"
+          >
             <div className="flex justify-center mb-4">
-              <svg className="h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
+              <FaShoppingBag className="h-16 w-16 text-gray-300" />
             </div>
             <h2 className="text-2xl font-medium text-gray-900 mb-2">Your cart is empty</h2>
             <p className="text-gray-600 mb-6">Looks like you haven't added any items to your cart yet.</p>
@@ -145,7 +157,7 @@ const Cart: React.FC = () => {
             >
               Continue Shopping
             </Link>
-          </div>
+          </motion.div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Left Column - Cart Items */}
@@ -165,12 +177,13 @@ const Cart: React.FC = () => {
                         initial="hidden"
                         animate="visible"
                         exit="exit"
+                        whileHover="hover"
                         layout
-                        className="bg-white rounded-xl p-4 shadow-sm"
+                        className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
                       >
                         <div className="flex items-center">
                           {/* Product Image */}
-                          <div className="w-20 h-20 flex-shrink-0 rounded-md overflow-hidden">
+                          <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden border border-gray-100">
                             <img 
                               src={item.image} 
                               alt={item.name}
@@ -179,26 +192,30 @@ const Cart: React.FC = () => {
                           </div>
                           
                           {/* Product Details */}
-                          <div className="ml-4 flex-1">
-                            <h3 className="font-medium text-gray-900">{item.name}</h3>
-                            <p className="text-sm text-gray-500">
-                              Size: {item.size} | Color: {item.color}
-                            </p>
-                            <div className="mt-1 font-bold">${item.price}</div>
+                          <div className="ml-6 flex-1">
+                            <h3 className="font-medium text-lg text-gray-900 mb-1">{item.name}</h3>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
+                              <span className="flex items-center">
+                                <span className="w-3 h-3 rounded-full bg-gray-200 mr-2"></span>
+                                {item.color}
+                              </span>
+                              <span>Size: {item.size}</span>
+                            </div>
+                            <div className="text-lg font-bold text-gray-900">${item.price}</div>
                           </div>
                           
                           {/* Quantity Controls */}
-                          <div className="flex items-center border border-gray-300 rounded-md">
+                          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                             <button 
-                              className="px-2 py-1 text-gray-500 hover:text-black transition-colors"
+                              className="px-3 py-2 text-gray-500 hover:text-black hover:bg-gray-50 transition-colors"
                               onClick={() => updateQuantity(item.id, item.quantity - 1)}
                               disabled={item.quantity <= 1}
                             >
                               <FaMinus className="h-3 w-3" />
                             </button>
-                            <span className="px-3 py-1 text-gray-900 font-medium">{item.quantity}</span>
+                            <span className="px-4 py-2 text-gray-900 font-medium border-x border-gray-200">{item.quantity}</span>
                             <button 
-                              className="px-2 py-1 text-gray-500 hover:text-black transition-colors"
+                              className="px-3 py-2 text-gray-500 hover:text-black hover:bg-gray-50 transition-colors"
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
                             >
                               <FaPlus className="h-3 w-3" />
@@ -207,7 +224,7 @@ const Cart: React.FC = () => {
                           
                           {/* Delete Button */}
                           <button 
-                            className="ml-4 text-black-500 hover:text-red-600 transition-colors"
+                            className="ml-6 text-gray-400 hover:text-red-500 transition-colors"
                             onClick={() => removeFromCart(item.id)}
                             aria-label="Remove item"
                           >
@@ -222,36 +239,42 @@ const Cart: React.FC = () => {
             </div>
             
             {/* Right Column - Order Summary */}
-            <div className="lg:w-100">
+            <div className="lg:w-96">
               <motion.div 
-                className="bg-white rounded-xl p-6 shadow-sm sticky top-24"
+                className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 sticky top-24"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <h2 className="text-lg font-bold mb-4">Order Summary</h2>
+                <h2 className="text-xl font-bold mb-6">Order Summary</h2>
                 
-                <div className="space-y-3 mb-6">
-                  <div className="flex justify-between">
+                <div className="space-y-4 mb-6">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium">${subtotal.toFixed(2)}</span>
+                    <span className="font-medium text-gray-900">${subtotal.toFixed(2)}</span>
                   </div>
                   
                   {promoApplied && (
-                    <div className="flex justify-between">
-                      <span className="text-red-500">Discount ({DISCOUNT_PERCENTAGE}%)</span>
-                      <span className="text-red-500">-${discount.toFixed(2)}</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-600 flex items-center">
+                        <FaTag className="mr-2" />
+                        Discount ({DISCOUNT_PERCENTAGE}%)
+                      </span>
+                      <span className="text-green-600">-${discount.toFixed(2)}</span>
                     </div>
                   )}
                   
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Delivery Fee</span>
-                    <span className="font-medium">${DELIVERY_FEE.toFixed(2)}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 flex items-center">
+                      <FaTruck className="mr-2" />
+                      Delivery Fee
+                    </span>
+                    <span className="font-medium text-gray-900">${DELIVERY_FEE.toFixed(2)}</span>
                   </div>
                   
-                  <div className="border-t border-gray-200 pt-3 flex justify-between">
-                    <span className="font-bold">Total</span>
-                    <span className="font-bold">${total.toFixed(2)}</span>
+                  <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
+                    <span className="font-bold text-lg">Total</span>
+                    <span className="font-bold text-lg">${total.toFixed(2)}</span>
                   </div>
                 </div>
                 
@@ -261,31 +284,40 @@ const Cart: React.FC = () => {
                     <input
                       type="text"
                       placeholder="Add promo code"
-                      className="flex-1 border border-gray-300 rounded-l-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                      className="flex-1 border border-gray-200 rounded-l-lg px-4 py-3 focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
                     />
                     <button 
-                      className="bg-black text-white px-4 py-2 rounded-r-md font-medium hover:bg-gray-800 transition-colors"
+                      className="bg-black text-white px-6 py-3 rounded-r-lg font-medium hover:bg-gray-800 transition-colors"
                       onClick={applyPromoCode}
                     >
                       Apply
                     </button>
                   </div>
                   {promoApplied && (
-                    <p className="text-green-600 text-sm mt-1">Promo code applied!</p>
+                    <p className="text-green-600 text-sm mt-2 flex items-center">
+                      <FaTag className="mr-1" /> Promo code applied successfully!
+                    </p>
                   )}
                 </div>
                 
                 {/* Checkout Button */}
                 <motion.button 
-                  className="w-full bg-black text-white py-3 rounded-md font-medium hover:bg-gray-800 transition-colors flex items-center justify-center"
+                  className="w-full bg-black text-white py-4 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <span>Go to Checkout</span>
+                  <FaLock className="mr-2" />
+                  <span>Proceed to Checkout</span>
                   <FaLongArrowAltRight className="ml-2" />
                 </motion.button>
+
+                {/* Security Notice */}
+                <p className="text-center text-sm text-gray-500 mt-4 flex items-center justify-center">
+                  <FaLock className="mr-2 h-3 w-3" />
+                  Secure Checkout
+                </p>
               </motion.div>
             </div>
           </div>

@@ -143,10 +143,9 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ productImage, productName, 
         {
           model_image: modelImageBase64,
           cloth_image: clothImageBase64,
-          category: category === 'upper_body' ? 'Upper body' : category === 'lower_body' ? 'Lower body' : 'Dresses',
+          category: category === 'upper_body' ? 'Upper body' : category === 'lower_body' ? 'Lower body' : 'Dress',
           num_inference_steps: 35,
           guidance_scale: 2,
-          // seed: 12467,
           seed: 50000,
           base64: true
         },
@@ -355,20 +354,6 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ productImage, productName, 
                 </div>
                 
                 {/* Category Selection */}
-                {/* <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Clothing Category
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full border-2 border-black-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-black-500 focus:border-transparent bg-black-50"
-                  >
-                    <option value="upper_body">Upper Body (Shirts, T-shirts)</option>
-                    <option value="lower_body">Lower Body (Pants, Skirts)</option>
-                    <option value="dresses">Dresses</option>
-                  </select>
-                </div> */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700">
                       Clothing Category
@@ -382,7 +367,7 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ productImage, productName, 
                           onChange={(e) => setCategory(e.target.value)}
                           className="text-black focus:ring-black"
                         />
-                        <span>Top Wear </span>
+                        <span>Upper Body</span>
                       </label>
                       <label className="inline-flex items-center space-x-2">
                         <input
@@ -392,17 +377,17 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ productImage, productName, 
                           onChange={(e) => setCategory(e.target.value)}
                           className="text-black focus:ring-black"
                         />
-                        <span>Bottem Wear</span>
+                        <span>Lower Body</span>
                       </label>
                       <label className="inline-flex items-center space-x-2">
                         <input
                           type="radio"
-                          value="dresses"
-                          checked={category === 'dresses'}
+                          value="full_body"
+                          checked={category === 'full_body'}
                           onChange={(e) => setCategory(e.target.value)}
                           className="text-black focus:ring-black"
                         />
-                        <span>Dress</span>
+                        <span>Full Body</span>
                       </label>
                     </div>
                   </div>

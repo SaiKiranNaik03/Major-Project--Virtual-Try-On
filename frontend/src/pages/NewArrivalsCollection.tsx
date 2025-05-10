@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import api from '../config/axios';
 
 // Icons
 import { 
@@ -15,181 +17,115 @@ import {
   FaHeart
 } from 'react-icons/fa';
 
-// Sample product data - New Arrivals collection
-const products = [
-  {
-    id: 1,
-    name: 'Modern Minimalist Shirt',
-    price: 125,
-    rating: 4.8,
-    reviews: 12,
-    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#FFF', '#4682B4'],
-    sizes: ['S', 'M', 'L', 'XL'],
-    category: 'Shirts',
-    style: 'Casual',
-    gender: 'Men',
-    isNew: true,
-    dateAdded: '2023-05-15'
-  },
-  {
-    id: 2,
-    name: 'Premium Cotton T-shirt',
-    price: 85,
-    rating: 4.6,
-    reviews: 8,
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#FFF', '#8B4513'],
-    sizes: ['S', 'M', 'L', 'XL'],
-    category: 'T-shirts',
-    style: 'Casual',
-    gender: 'Men',
-    isNew: true,
-    dateAdded: '2023-05-18'
-  },
-  {
-    id: 3,
-    name: 'Structured Blazer',
-    price: 195,
-    rating: 4.9,
-    reviews: 5,
-    image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#1F2937', '#8B0000'],
-    sizes: ['S', 'M', 'L'],
-    category: 'Blazers',
-    style: 'Formal',
-    gender: 'Men',
-    isNew: true,
-    dateAdded: '2023-05-20'
-  },
-  {
-    id: 4,
-    name: 'Slim Fit Chinos',
-    price: 110,
-    rating: 4.7,
-    reviews: 9,
-    image: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#1F2937', '#4B5563'],
-    sizes: ['30', '32', '34', '36'],
-    category: 'Pants',
-    style: 'Casual',
-    gender: 'Men',
-    isNew: true,
-    dateAdded: '2023-05-22'
-  },
-  {
-    id: 5,
-    name: 'Women\'s Floral Blouse',
-    price: 95,
-    rating: 4.8,
-    reviews: 11,
-    image: 'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#FFF', '#FF69B4', '#FFD700'],
-    sizes: ['XS', 'S', 'M', 'L'],
-    category: 'Tops',
-    style: 'Casual',
-    gender: 'Women',
-    isNew: true,
-    dateAdded: '2023-05-16'
-  },
-  {
-    id: 6,
-    name: 'Women\'s Tailored Pants',
-    price: 135,
-    rating: 4.9,
-    reviews: 7,
-    image: 'https://images.unsplash.com/photo-1509551388413-e18d0ac5d495?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#1F2937', '#4B5563'],
-    sizes: ['XS', 'S', 'M', 'L'],
-    category: 'Pants',
-    style: 'Formal',
-    gender: 'Women',
-    isNew: true,
-    dateAdded: '2023-05-19'
-  },
-  {
-    id: 7,
-    name: 'Women\'s Summer Dress',
-    price: 145,
-    rating: 4.7,
-    reviews: 14,
-    image: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#FFF', '#FF69B4', '#4682B4'],
-    sizes: ['XS', 'S', 'M', 'L'],
-    category: 'Dresses',
-    style: 'Casual',
-    gender: 'Women',
-    isNew: true,
-    dateAdded: '2023-05-21'
-  },
-  {
-    id: 8,
-    name: 'Lightweight Jacket',
-    price: 165,
-    rating: 4.8,
-    reviews: 6,
-    image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#000', '#1F2937', '#4B5563'],
-    sizes: ['S', 'M', 'L', 'XL'],
-    category: 'Jackets',
-    style: 'Casual',
-    gender: 'Unisex',
-    isNew: true,
-    dateAdded: '2023-05-23'
-  },
-  {
-    id: 9,
-    name: 'Patterned Scarf',
-    price: 55,
-    rating: 4.6,
-    reviews: 8,
-    image: 'https://images.unsplash.com/photo-1601370690183-1c7965809aee?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    colors: ['#4682B4', '#8B0000', '#FFD700'],
-    sizes: ['One Size'],
-    category: 'Accessories',
-    style: 'Casual',
-    gender: 'Unisex',
-    isNew: true,
-    dateAdded: '2023-05-17'
-  }
-];
+// Product interface based on JSON structure
+interface Product {
+  id: number;
+  price: number;
+  discountedPrice: number;
+  productDisplayName: string;
+  brandName: string;
+  baseColour: string;
+  gender: string;
+  usage: string;
+  styleImages: {
+    default: {
+      imageURL: string;
+    };
+  };
+  articleType: {
+    typeName: string;
+  };
+  masterCategory: {
+    typeName: string;
+  };
+  subCategory: {
+    typeName: string;
+  };
+}
 
-// Filter options
-const categories = ['T-shirts', 'Shirts', 'Blazers', 'Pants', 'Tops', 'Dresses', 'Jackets', 'Accessories'];
-const sizes = ['XS', 'S', 'M', 'L', 'XL', 'One Size', '30', '32', '34', '36'];
-const styles = ['Casual', 'Formal', 'Party', 'Sport'];
-const genders = ['Men', 'Women', 'Unisex'];
-const colors = [
-  { name: 'Black', hex: '#000000' },
-  { name: 'White', hex: '#FFFFFF' },
-  { name: 'Navy', hex: '#000080' },
-  { name: 'Blue', hex: '#2196F3' },
-  { name: 'Pink', hex: '#E91E63' },
-  { name: 'Green', hex: '#4CAF50' },
-  { name: 'Red', hex: '#F44336' },
-  { name: 'Yellow', hex: '#FFEB3B' }
-];
+interface ProductsResponse {
+  success: boolean;
+  data: Product[];
+  total: number;
+  totalPages: number;
+}
+
+// Add color mapping for visual representation
+const colorMap: { [key: string]: string } = {
+  'Black': '#000000',
+  'White': '#FFFFFF',
+  'Blue': '#0000FF',
+  'Red': '#FF0000',
+  'Green': '#008000',
+  'Yellow': '#FFFF00',
+  'Purple': '#800080',
+  'Pink': '#FFC0CB',
+  'Orange': '#FFA500',
+  'Brown': '#A52A2A',
+  'Grey': '#808080',
+  'Navy': '#000080',
+  'Beige': '#F5F5DC',
+  'Maroon': '#800000',
+  'Teal': '#008080',
+  'Olive': '#808000',
+  'Lavender': '#E6E6FA',
+  'Cyan': '#00FFFF',
+  'Magenta': '#FF00FF',
+  'Gold': '#FFD700',
+  'Silver': '#C0C0C0',
+  'Khaki': '#F0E68C',
+  'Indigo': '#4B0082',
+  'Turquoise': '#40E0D0',
+  'Coral': '#FF7F50',
+  'Cream': '#FFFDD0',
+  'Mint': '#98FF98',
+  'Peach': '#FFDAB9',
+  'Tan': '#D2B48C',
+  'Wine': '#722F37'
+};
 
 const NewArrivalsCollection: React.FC = () => {
   // State for filters
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<[number, number]>([50, 300]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
-  const [selectedGenders, setSelectedGenders] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [sortBy, setSortBy] = useState<string>('newest');
   const [showMobileFilters, setShowMobileFilters] = useState<boolean>(false);
   const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
   const [wishlist, setWishlist] = useState<number[]>([]);
 
-  // Pagination
-  const productsPerPage = 9;
-  const totalPages = Math.ceil(products.length / productsPerPage);
-  const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
+  // Fetch products using React Query
+  const { data: productsData, isLoading } = useQuery<ProductsResponse>({
+    queryKey: ['latestProducts', currentPage, sortBy, selectedCategories, selectedColors, selectedBrands, priceRange],
+    queryFn: async () => {
+      const response = await api.get<ProductsResponse>('/products/latest', {
+        params: {
+          page: currentPage,
+          limit: 12,
+          sort: sortBy,
+          categories: selectedCategories.join(','),
+          colors: selectedColors.join(','),
+          brands: selectedBrands.join(','),
+          minPrice: priceRange[0],
+          maxPrice: priceRange[1]
+        }
+      });
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep data in cache for 30 minutes
+  });
+
+  const products = productsData?.data || [];
+  const totalPages = productsData?.totalPages || 1;
+  const totalProducts = productsData?.total || 0;
+
+  // Get unique values for filters
+  const categories = Array.from(new Set(products.map((p: Product) => p.articleType.typeName)));
+  const colors = Array.from(new Set(products.map((p: Product) => p.baseColour)));
+  const brands = Array.from(new Set(products.map((p: Product) => p.brandName)));
 
   // Toggle wishlist
   const toggleWishlist = (productId: number) => {
@@ -217,99 +153,51 @@ const NewArrivalsCollection: React.FC = () => {
     }
   };
 
-  const handleSizeChange = (size: string) => {
-    if (selectedSizes.includes(size)) {
-      setSelectedSizes(selectedSizes.filter(s => s !== size));
+  const handleBrandChange = (brand: string) => {
+    if (selectedBrands.includes(brand)) {
+      setSelectedBrands(selectedBrands.filter(b => b !== brand));
     } else {
-      setSelectedSizes([...selectedSizes, size]);
+      setSelectedBrands([...selectedBrands, brand]);
     }
   };
 
-  const handleStyleChange = (style: string) => {
-    if (selectedStyles.includes(style)) {
-      setSelectedStyles(selectedStyles.filter(s => s !== style));
-    } else {
-      setSelectedStyles([...selectedStyles, style]);
-    }
-  };
-
-  const handleGenderChange = (gender: string) => {
-    if (selectedGenders.includes(gender)) {
-      setSelectedGenders(selectedGenders.filter(g => g !== gender));
-    } else {
-      setSelectedGenders([...selectedGenders, gender]);
-    }
-  };
-
+  // Update price range handling
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const newValue = parseInt(e.target.value);
     const newPriceRange = [...priceRange] as [number, number];
-    newPriceRange[index] = newValue;
     
-    // Ensure min <= max
-    if (index === 0 && newValue > priceRange[1]) {
-      newPriceRange[1] = newValue;
-    } else if (index === 1 && newValue < priceRange[0]) {
-      newPriceRange[0] = newValue;
+    // Ensure min doesn't exceed max and vice versa
+    if (index === 0) {
+      newPriceRange[0] = Math.min(newValue, priceRange[1]);
+    } else {
+      newPriceRange[1] = Math.max(newValue, priceRange[0]);
     }
     
     setPriceRange(newPriceRange);
   };
 
+  // Get min and max prices from products
+  const minPrice = Math.min(...products.map(p => p.price));
+  const maxPrice = Math.max(...products.map(p => p.price));
+
   const clearAllFilters = () => {
     setSelectedCategories([]);
-    setPriceRange([50, 300]);
     setSelectedColors([]);
-    setSelectedSizes([]);
-    setSelectedStyles([]);
-    setSelectedGenders([]);
+    setSelectedBrands([]);
+    const prices = products.map((p: Product) => p.price);
+    setPriceRange([Math.min(...prices), Math.max(...prices)]);
   };
 
-  // Apply filters
-  const applyFilters = () => {
-    // In a real app, this would filter the products based on selected filters
-    console.log('Applying filters:', {
-      categories: selectedCategories,
-      priceRange,
-      colors: selectedColors,
-      sizes: selectedSizes,
-      styles: selectedStyles,
-      genders: selectedGenders
-    });
-    
-    // Reset to first page when filters change
-    setCurrentPage(1);
-  };
-
-  // Render star rating
-  const renderStarRating = (rating: number) => {
+  // Render star rating (placeholder since we don't have ratings in the JSON)
+  const renderStarRating = () => {
     const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-    
     for (let i = 1; i <= 5; i++) {
-      if (i <= fullStars) {
-        stars.push(<FaStar key={i} className="text-yellow-400" />);
-      } else if (i === fullStars + 1 && hasHalfStar) {
-        stars.push(<FaStarHalfAlt key={i} className="text-yellow-400" />);
-      } else {
         stars.push(<FaRegStar key={i} className="text-yellow-400" />);
-      }
     }
-    
     return stars;
   };
 
   // Animation variants
-  // const fadeIn = {
-  //   hidden: { opacity: 0, y: 20 },
-  //   visible: { 
-  //     opacity: 1, 
-  //     y: 0,
-  //     transition: { duration: 0.4 }
-  //   }
-  // };
-
   const staggerContainer = {
     hidden: { opacity: 0 },
     visible: {
@@ -330,26 +218,42 @@ const NewArrivalsCollection: React.FC = () => {
     rest: { scale: 1, transition: { duration: 0.5 } }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-gray-50 min-h-screen pt-24 pb-16">
+    <div className="bg-white min-h-screen pt-24 pb-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
-        <nav className="flex py-4 text-sm text-gray-500">
+        <nav className="flex py-4 text-sm text-gray-500 mb-8">
           <Link to="/" className="hover:text-black transition-colors">Home</Link>
           <FaChevronRight className="mx-2 mt-1" />
           <span className="text-black font-medium">New Arrivals</span>
         </nav>
 
         {/* New Arrivals Banner */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl p-6 mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2">NEW ARRIVALS</h1>
-          <p className="text-indigo-100">Discover our latest collection of fresh styles and trends</p>
+        <div className="relative mb-12 overflow-hidden rounded-2xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/90 to-purple-600/90 z-10"></div>
+          <img 
+            src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" 
+            alt="New Arrivals"
+            className="w-full h-[250px] object-cover"
+          />
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center text-white px-4">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">NEW ARRIVALS</h1>
+            <p className="text-xl max-w-2xl">Discover our latest collection of fresh styles and trends</p>
+          </div>
         </div>
 
         {/* Mobile Filter Button */}
-        <div className="lg:hidden mb-4">
+        <div className="lg:hidden mb-6">
           <button 
-            className="w-full py-3 bg-black text-white rounded-md flex items-center justify-center font-medium"
+            className="w-full py-3 bg-black text-white rounded-xl flex items-center justify-center font-medium shadow-lg hover:bg-gray-800 transition-all duration-300"
             onClick={() => setShowMobileFilters(true)}
           >
             <FaFilter className="mr-2" />
@@ -359,10 +263,10 @@ const NewArrivalsCollection: React.FC = () => {
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Filters - Desktop */}
-          <div className="hidden lg:block w-64 flex-shrink-0">
-            <div className="bg-white rounded-xl p-6 shadow-sm sticky top-24">
+          <div className="hidden lg:block w-72 flex-shrink-0">
+            <div className="bg-white rounded-2xl p-6 shadow-lg sticky top-24 border border-gray-100">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-bold">Filters</h2>
+                <h2 className="text-xl font-bold">Filters</h2>
                 <button 
                   className="text-sm text-gray-500 hover:text-black transition-colors"
                   onClick={clearAllFilters}
@@ -371,80 +275,78 @@ const NewArrivalsCollection: React.FC = () => {
                 </button>
               </div>
 
-              {/* Gender */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-3">Gender</h3>
-                <div className="space-y-2">
-                  {genders.map(gender => (
-                    <label key={gender} className="flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="form-checkbox h-5 w-5 text-black rounded border-gray-300 focus:ring-black"
-                        checked={selectedGenders.includes(gender)}
-                        onChange={() => handleGenderChange(gender)}
-                      />
-                      <span className="ml-2 text-gray-700">{gender}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
               {/* Categories */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-3">Category</h3>
-                <div className="space-y-2">
+              <div className="mb-8">
+                <h3 className="font-semibold mb-4 text-lg">Category</h3>
+                <div className="space-y-3">
                   {categories.map(category => (
-                    <label key={category} className="flex items-center cursor-pointer">
+                    <label key={category} className="flex items-center cursor-pointer group">
                       <input 
                         type="checkbox" 
                         className="form-checkbox h-5 w-5 text-black rounded border-gray-300 focus:ring-black"
                         checked={selectedCategories.includes(category)}
                         onChange={() => handleCategoryChange(category)}
                       />
-                      <span className="ml-2 text-gray-700">{category}</span>
+                      <span className="ml-3 text-gray-700 group-hover:text-black transition-colors">{category}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               {/* Price Range */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-3">Price Range</h3>
+              <div className="mb-8">
+                <h3 className="font-semibold mb-4 text-lg">Price Range</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">${priceRange[0]}</span>
-                    <span className="text-sm text-gray-600">${priceRange[1]}</span>
+                    <span className="text-sm text-gray-600">₹{priceRange[0]}</span>
+                    <span className="text-sm text-gray-600">₹{priceRange[1]}</span>
                   </div>
-                  <div className="relative h-1 bg-gray-200 rounded-full">
+                  <div className="relative h-2 bg-gray-200 rounded-full">
                     <div 
-                      className="absolute h-1 bg-black rounded-full"
+                      className="absolute h-2 bg-grey-50 rounded-full"
                       style={{ 
-                        left: `${(priceRange[0] - 50) / 2.5}%`, 
-                        right: `${100 - (priceRange[1] - 50) / 2.5}%` 
+                        left: `${((priceRange[0] - minPrice) / (maxPrice - minPrice)) * 100}%`, 
+                        right: `${100 - ((priceRange[1] - minPrice) / (maxPrice - minPrice)) * 100}%` 
                       }}
                     ></div>
+                    <input
+                      type="range"
+                      min={minPrice}
+                      max={maxPrice}
+                      value={priceRange[0]}
+                      onChange={(e) => handlePriceChange(e, 0)}
+                      className="absolute w-full h-2 opacity-0 cursor-pointer"
+                    />
+                    <input
+                      type="range"
+                      min={minPrice}
+                      max={maxPrice}
+                      value={priceRange[1]}
+                      onChange={(e) => handlePriceChange(e, 1)}
+                      className="absolute w-full h-2 opacity-0 cursor-pointer"
+                    />
                   </div>
                   <div className="flex space-x-4">
                     <div>
                       <label className="text-sm text-gray-600 block mb-1">Min</label>
                       <input 
                         type="number" 
-                        min="50" 
-                        max="300" 
+                        min={minPrice}
+                        max={maxPrice}
                         value={priceRange[0]} 
                         onChange={(e) => handlePriceChange(e, 0)}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-transparent"
                       />
                     </div>
                     <div>
                       <label className="text-sm text-gray-600 block mb-1">Max</label>
                       <input 
                         type="number" 
-                        min="50" 
-                        max="300" 
+                        min={minPrice}
+                        max={maxPrice}
                         value={priceRange[1]} 
                         onChange={(e) => handlePriceChange(e, 1)}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -452,54 +354,49 @@ const NewArrivalsCollection: React.FC = () => {
               </div>
 
               {/* Colors */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-3">Colors</h3>
-                <div className="flex flex-wrap gap-2">
-                  {colors.map(color => (
-                    <button
-                      key={color.name}
-                      className={`w-8 h-8 rounded-full border-2 ${selectedColors.includes(color.name) ? 'border-black' : 'border-transparent'}`}
-                      style={{ backgroundColor: color.hex }}
-                      onClick={() => handleColorChange(color.name)}
-                      aria-label={`Select ${color.name} color`}
-                    />
-                  ))}
+              <div className="mb-8">
+                <h3 className="font-semibold mb-4 text-lg">Colors</h3>
+                <div className="flex flex-wrap gap-3">
+                  {colors.map(color => {
+                    const colorHex = colorMap[color] || '#CCCCCC';
+                    return (
+                      <button
+                        key={color}
+                        className={`relative w-8 h-8 rounded-full transition-all duration-300 ${
+                          selectedColors.includes(color) 
+                            ? 'ring-2 ring-black ring-offset-2' 
+                            : 'hover:ring-2 hover:ring-gray-300'
+                        }`}
+                        style={{ backgroundColor: colorHex }}
+                        onClick={() => handleColorChange(color)}
+                        title={color}
+                      >
+                        {selectedColors.includes(color) && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Sizes */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-3">Size</h3>
-                <div className="flex flex-wrap gap-2">
-                  {sizes.map(size => (
-                    <button
-                      key={size}
-                      className={`px-3 py-1 border rounded-md text-sm ${
-                        selectedSizes.includes(size) 
-                          ? 'bg-black text-white border-black' 
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-black'
-                      }`}
-                      onClick={() => handleSizeChange(size)}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Styles */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-3">Style</h3>
-                <div className="space-y-2">
-                  {styles.map(style => (
-                    <label key={style} className="flex items-center cursor-pointer">
+              {/* Brands */}
+              <div className="mb-8">
+                <h3 className="font-semibold mb-4 text-lg">Brands</h3>
+                <div className="space-y-3">
+                  {brands.map(brand => (
+                    <label key={brand} className="flex items-center cursor-pointer group">
                       <input 
                         type="checkbox" 
                         className="form-checkbox h-5 w-5 text-black rounded border-gray-300 focus:ring-black"
-                        checked={selectedStyles.includes(style)}
-                        onChange={() => handleStyleChange(style)}
+                        checked={selectedBrands.includes(brand)}
+                        onChange={() => handleBrandChange(brand)}
                       />
-                      <span className="ml-2 text-gray-700">{style}</span>
+                      <span className="ml-3 text-gray-700 group-hover:text-black transition-colors">{brand}</span>
                     </label>
                   ))}
                 </div>
@@ -507,222 +404,39 @@ const NewArrivalsCollection: React.FC = () => {
 
               {/* Apply Filters Button */}
               <button 
-                className="w-full py-2 bg-black text-white rounded-md font-medium hover:bg-gray-800 transition-colors"
-                onClick={applyFilters}
+                className="w-full py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-all duration-300 shadow-lg"
+                onClick={() => {
+                  // Implement apply filters logic
+                }}
               >
                 Apply Filters
               </button>
             </div>
           </div>
 
-          {/* Mobile Filters */}
-          <AnimatePresence>
-            {showMobileFilters && (
-              <motion.div 
-                className="fixed inset-0 bg-black bg-opacity-50 z-50 lg:hidden"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <motion.div 
-                  className="absolute right-0 top-0 h-full w-4/5 max-w-md bg-white overflow-y-auto"
-                  initial={{ x: '100%' }}
-                  animate={{ x: 0 }}
-                  exit={{ x: '100%' }}
-                  transition={{ type: 'tween' }}
-                >
-                  <div className="p-6">
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-lg font-bold">Filters</h2>
-                      <button 
-                        className="text-gray-500 hover:text-black"
-                        onClick={() => setShowMobileFilters(false)}
-                      >
-                        <FaTimes className="h-5 w-5" />
-                      </button>
-                    </div>
-
-                    {/* Mobile filter content - same as desktop but in a slide-over panel */}
-                    {/* Gender */}
-                    <div className="mb-6">
-                      <h3 className="font-medium mb-3">Gender</h3>
-                      <div className="space-y-2">
-                        {genders.map(gender => (
-                          <label key={gender} className="flex items-center cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              className="form-checkbox h-5 w-5 text-black rounded border-gray-300 focus:ring-black"
-                              checked={selectedGenders.includes(gender)}
-                              onChange={() => handleGenderChange(gender)}
-                            />
-                            <span className="ml-2 text-gray-700">{gender}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Categories */}
-                    <div className="mb-6">
-                      <h3 className="font-medium mb-3">Category</h3>
-                      <div className="space-y-2">
-                        {categories.map(category => (
-                          <label key={category} className="flex items-center cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              className="form-checkbox h-5 w-5 text-black rounded border-gray-300 focus:ring-black"
-                              checked={selectedCategories.includes(category)}
-                              onChange={() => handleCategoryChange(category)}
-                            />
-                            <span className="ml-2 text-gray-700">{category}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Price Range */}
-                    <div className="mb-6">
-                      <h3 className="font-medium mb-3">Price Range</h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">${priceRange[0]}</span>
-                          <span className="text-sm text-gray-600">${priceRange[1]}</span>
-                        </div>
-                        <div className="relative h-1 bg-gray-200 rounded-full">
-                          <div 
-                            className="absolute h-1 bg-black rounded-full"
-                            style={{ 
-                              left: `${(priceRange[0] - 50) / 2.5}%`, 
-                              right: `${100 - (priceRange[1] - 50) / 2.5}%` 
-                            }}
-                          ></div>
-                        </div>
-                        <div className="flex space-x-4">
-                          <div>
-                            <label className="text-sm text-gray-600 block mb-1">Min</label>
-                            <input 
-                              type="number" 
-                              min="50" 
-                              max="300" 
-                              value={priceRange[0]} 
-                              onChange={(e) => handlePriceChange(e, 0)}
-                              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm text-gray-600 block mb-1">Max</label>
-                            <input 
-                              type="number" 
-                              min="50" 
-                              max="300" 
-                              value={priceRange[1]} 
-                              onChange={(e) => handlePriceChange(e, 1)}
-                              className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Colors */}
-                    <div className="mb-6">
-                      <h3 className="font-medium mb-3">Colors</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {colors.map(color => (
-                          <button
-                            key={color.name}
-                            className={`w-8 h-8 rounded-full border-2 ${selectedColors.includes(color.name) ? 'border-black' : 'border-transparent'}`}
-                            style={{ backgroundColor: color.hex }}
-                            onClick={() => handleColorChange(color.name)}
-                            aria-label={`Select ${color.name} color`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Sizes */}
-                    <div className="mb-6">
-                      <h3 className="font-medium mb-3">Size</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {sizes.map(size => (
-                          <button
-                            key={size}
-                            className={`px-3 py-1 border rounded-md text-sm ${
-                              selectedSizes.includes(size) 
-                                ? 'bg-black text-white border-black' 
-                                : 'bg-white text-gray-700 border-gray-300 hover:border-black'
-                            }`}
-                            onClick={() => handleSizeChange(size)}
-                          >
-                            {size}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Styles */}
-                    <div className="mb-6">
-                      <h3 className="font-medium mb-3">Style</h3>
-                      <div className="space-y-2">
-                        {styles.map(style => (
-                          <label key={style} className="flex items-center cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              className="form-checkbox h-5 w-5 text-black rounded border-gray-300 focus:ring-black"
-                              checked={selectedStyles.includes(style)}
-                              onChange={() => handleStyleChange(style)}
-                            />
-                            <span className="ml-2 text-gray-700">{style}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex space-x-4">
-                      <button 
-                        className="flex-1 py-2 border border-black text-black rounded-md font-medium hover:bg-gray-100 transition-colors"
-                        onClick={clearAllFilters}
-                      >
-                        Clear All
-                      </button>
-                      <button 
-                        className="flex-1 py-2 bg-black text-white rounded-md font-medium hover:bg-gray-800 transition-colors"
-                        onClick={() => {
-                          applyFilters();
-                          setShowMobileFilters(false);
-                        }}
-                      >
-                        Apply Filters
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* Main Content */}
           <div className="flex-1">
             {/* Sort and Results Count */}
-            <div className="bg-white rounded-xl p-4 mb-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div className="bg-white rounded-2xl p-6 mb-8 shadow-lg border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center">
               <div className="mb-4 sm:mb-0">
-                <p className="text-gray-500">Showing {indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, products.length)} of {products.length} products</p>
+                <h1 className="text-[20px] font-bold text-gray-800 mb-2">New Arrivals</h1>
+                <p className="text-gray-600">Showing <span className="font-semibold text-black">{totalProducts}</span> products</p>
               </div>
               <div className="flex items-center">
-                <span className="text-gray-500 mr-2">Sort by:</span>
+                <span className="text-gray-600 mr-3">Sort by:</span>
                 <div className="relative">
                   <select 
-                    className="appearance-none bg-transparent border border-gray-300 rounded-md pl-3 pr-8 py-1 focus:outline-none focus:ring-1 focus:ring-black focus:border-black cursor-pointer"
+                    className="appearance-none bg-white border border-gray-300 rounded-xl pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent cursor-pointer"
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                   >
-                    <option value="newest">Newest First</option>
+                    <option value="newest">Newest</option>
+                    <option value="popular">Most Popular</option>
                     <option value="price-low">Price: Low to High</option>
                     <option value="price-high">Price: High to Low</option>
-                    <option value="popular">Most Popular</option>
-                    <option value="rating">Highest Rated</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                    <FaChevronDown className="h-3 w-3" />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                    <FaChevronDown className="h-4 w-4" />
                   </div>
                 </div>
               </div>
@@ -730,16 +444,16 @@ const NewArrivalsCollection: React.FC = () => {
 
             {/* Products Grid */}
             <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
               initial="hidden"
               animate="visible"
               variants={staggerContainer}
             >
-              {currentProducts.map((product) => (
+              {products.map((product: Product) => (
                 <motion.div
                   key={product.id}
                   variants={productHover}
-                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100"
                   initial="rest"
                   whileHover="hover"
                   animate={hoveredProduct === product.id ? "hover" : "rest"}
@@ -747,56 +461,45 @@ const NewArrivalsCollection: React.FC = () => {
                   onMouseLeave={() => setHoveredProduct(null)}
                 >
                   <Link to={`/product/${product.id}`} className="block">
-                    <div className="relative overflow-hidden">
+                    <div className="relative overflow-hidden group">
                       <motion.img 
-                        src={product.image} 
-                        alt={product.name}
-                        className="w-full h-64 object-cover"
+                        src={product.styleImages.default.imageURL} 
+                        alt={product.productDisplayName}
+                        className="w-full h-80 object-cover group-hover:scale-110 transition-transform duration-500"
                         variants={imageVariants}
                       />
-                      <div className="absolute top-2 left-2 bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded">
+                      <div className="absolute top-3 left-3 bg-indigo-600 text-white text-sm font-bold px-3 py-1 rounded-full">
                         NEW
                       </div>
                       <button 
-                        className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md hover:shadow-lg transition-shadow"
+                        className="absolute top-3 right-3 bg-white p-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110"
                         onClick={(e) => {
                           e.preventDefault();
                           toggleWishlist(product.id);
                         }}
                       >
-                        <FaHeart className={`h-4 w-4 ${wishlist.includes(product.id) ? 'text-red-500' : 'text-gray-400'}`} />
+                        <FaHeart className={`h-5 w-5 ${wishlist.includes(product.id) ? 'text-red-500' : 'text-gray-400'}`} />
                       </button>
                     </div>
                   </Link>
-                  <div className="p-4">
+                  <div className="p-5">
                     <Link to={`/product/${product.id}`} className="block">
-                      <div className="flex items-center mb-1">
-                        <span className="text-xs font-medium bg-gray-100 text-gray-800 px-2 py-0.5 rounded">
-                          {product.gender}
-                        </span>
-                      </div>
-                      <h3 className="font-medium text-gray-900 mb-1">{product.name}</h3>
-                      <div className="flex items-center mb-1">
-                        <div className="flex mr-1">
-                          {renderStarRating(product.rating)}
+                      <h3 className="font-semibold text-gray-900 text-lg mb-2 line-clamp-2">{product.productDisplayName}</h3>
+                      <p className="text-sm text-gray-500 mb-2">{product.brandName}</p>
+                      <div className="flex items-center mb-3">
+                        <div className="flex mr-2">
+                          {renderStarRating()}
                         </div>
-                        <span className="text-xs text-gray-500">({product.reviews})</span>
                       </div>
                       <div className="flex items-center">
-                        <span className="font-bold text-gray-900">${product.price}</span>
+                        <span className="font-bold text-gray-900 text-lg">₹{product.discountedPrice}</span>
+                        {product.discountedPrice < product.price && (
+                          <span className="ml-2 text-sm text-gray-500 line-through">₹{product.price}</span>
+                        )}
                       </div>
                     </Link>
-                    <div className="mt-3 flex items-center space-x-2">
-                      {product.colors.slice(0, 3).map((color, index) => (
-                        <div 
-                          key={index} 
-                          className="w-4 h-4 rounded-full border border-gray-300" 
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                      {product.colors.length > 3 && (
-                        <span className="text-xs text-gray-500">+{product.colors.length - 3} more</span>
-                      )}
+                    <div className="mt-3">
+                      <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{product.baseColour}</span>
                     </div>
                   </div>
                 </motion.div>
@@ -804,30 +507,44 @@ const NewArrivalsCollection: React.FC = () => {
             </motion.div>
 
             {/* Pagination */}
-            <div className="mt-8 flex justify-center">
+            <div className="mt-12 flex justify-center">
               <nav className="flex items-center space-x-2">
                 <button 
-                  className="p-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 >
                   <FaChevronLeft className="h-4 w-4" />
                 </button>
-                {[...Array(totalPages)].map((_, index) => (
-                  <button
-                    key={index}
-                    className={`w-10 h-10 rounded-md ${
-                      currentPage === index + 1
-                        ? 'bg-black text-white'
-                        : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
-                    }`}
-                    onClick={() => setCurrentPage(index + 1)}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
+                {[...Array(totalPages)].map((_, index) => {
+                  const shouldShow = 
+                    index === 0 || 
+                    index === totalPages - 1 || 
+                    Math.abs(currentPage - (index + 1)) <= 1;
+
+                  if (!shouldShow) {
+                    if (index === 1 || index === totalPages - 2) {
+                      return <span key={index} className="px-3">...</span>;
+                    }
+                    return null;
+                  }
+
+                  return (
+                    <button
+                      key={index}
+                      className={`w-12 h-12 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        currentPage === index + 1
+                          ? 'bg-black text-white shadow-lg'
+                          : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
+                      }`}
+                      onClick={() => setCurrentPage(index + 1)}
+                    >
+                      {index + 1}
+                    </button>
+                  );
+                })}
                 <button 
-                  className="p-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 >

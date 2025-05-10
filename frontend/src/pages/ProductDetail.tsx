@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import VirtualTryOn from './VirtualTryOnNew';
 import axios from 'axios';
 import TryOnDialog from '../components/TryOnDialog';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // Icons
 import { FaStar, FaStarHalfAlt, FaRegStar, FaShoppingCart, FaHeart, FaShare, FaChevronRight, FaTruck, FaUndo, FaExchangeAlt, FaTimes, FaCamera } from 'react-icons/fa';
@@ -12,7 +12,6 @@ import { HiOutlinePlus, HiOutlineMinus } from 'react-icons/hi';
 import { GiTShirt } from 'react-icons/gi';
 
 // Import product data
-import productData from '../../../Dataset/1163.json';
 
 interface Review {
   id: number;
@@ -90,14 +89,15 @@ interface RelatedProduct {
   colors: string[];
 }
 
-const ProductDetail: React.FC = () => {
-  // Extract product info from JSON
-  const product = productData.data as Product;
-  const productID = productData.data.id;
-  
+const ProductDetailContent: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
   // State for product details
-  const [selectedColor, setSelectedColor] = useState<string>(product.baseColour.toLowerCase());
-  const [selectedSize, setSelectedSize] = useState<string>('L');
+  const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedSize, setSelectedSize] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
   const [activeImage, setActiveImage] = useState<number>(0);
   const [isWishlist, setIsWishlist] = useState<boolean>(false);
@@ -111,130 +111,56 @@ const ProductDetail: React.FC = () => {
   const [personImage, setPersonImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [tryOnResult, setTryOnResult] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [recommendedProducts, setRecommendedProducts] = useState<RelatedProduct[]>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState<boolean>(true);
 
-  // Product images from JSON
-  const productImages = [
-    product.styleImages.default.imageURL,
-    product.styleImages.back.imageURL,
-    product.styleImages.front.imageURL,
-    product.brandUserProfile.image,
-  ];
-
-  // Colors available - using the baseColour from JSON
-  const colors = [
-    { name: 'blue', hex: '#000080' },
-    { name: 'navy', hex: '#000040' },
-    { name: 'lightblue', hex: '#ADD8E6' },
-  ];
-
-  // Sizes available from JSON
-  const sizes = product.styleOptions
-    .filter(option => option.name === 'Size')
-    .map(option => ({
-      value: option.value,
-      available: option.available
-    }));
-
-  // Reviews
-  const reviews: Review[] = [
-    {
-      id: 1,
-      name: 'Alex Johnson',
-      rating: 5,
-      date: '12 Aug 2023',
-      comment: "This jersey is amazing! The fabric is so comfortable. I've been wearing it non-stop since I got it. The design is eye-catching and I've received many compliments.",
-      helpful: 24,
-    },
-    {
-      id: 2,
-      name: 'Sarah Miller',
-      rating: 4,
-      date: '28 Jul 2023',
-      comment: "Great quality jersey. The fit is perfect and the material feels premium. The only reason I'm giving 4 stars is because the color is slightly different from what I expected.",
-      helpful: 16,
-    },
-    {
-      id: 3,
-      name: 'Michael Chen',
-      rating: 4.5,
-      date: '15 Jul 2023',
-      comment: 'Excellent product for the price. The design is unique and the fabric is breathable. Perfect for cricket matches. Would definitely recommend!',
-      helpful: 9,
-    },
-  ];
-
-  // Related products
-  const relatedProducts: RelatedProduct[] = [
-    {
-      id: 1,
-      name: 'NIKE TEAM INDIA JERSEY',
-      price: 895,
-      originalPrice: 1200,
-      discount: 25,
-      rating: 4.3,
-      reviews: 42,
-      image: product.styleImages.default.imageURL,
-      colors: ['#000080', '#6B8E23', '#4682B4'],
-    },
-    {
-      id: 2,
-      name: 'NIKE DRI-FIT SPORTS TEE',
-      price: 795,
-      rating: 4.7,
-      reviews: 56,
-      image: product.styleImages.front.imageURL,
-      colors: ['#000080', '#FFF', '#8B4513'],
-    },
-    {
-      id: 3,
-      name: 'NIKE CRICKET FANWEAR',
-      price: 995,
-      originalPrice: 1250,
-      discount: 20,
-      rating: 4.1,
-      reviews: 28,
-      image: product.styleImages.back.imageURL,
-      colors: ['#000080', '#000', '#8B0000'],
-    },
-    {
-      id: 4,
-      name: 'NIKE PERFORMANCE JERSEY',
-      price: 1095,
-      rating: 4.8,
-      reviews: 64,
-      image: product.styleImages.default.resolutions?.['360X480'] || product.styleImages.default.imageURL,
-      colors: ['#000080', '#000', '#4B0082'],
-    },
-    {
-      id: 5,
-      name: 'NIKE TEAM SUPPORTER TEE',
-      price: 780,
-      rating: 4.8,
-      reviews: 85,
-      image: product.styleImages.front.resolutions?.['360X480'] || product.styleImages.front.imageURL,
-      colors: ['#000080', '#000', '#4B0082'],
-    },
-  ];
-
-  // Check if product is in wishlist on component mount
+  // Fetch product data when component mounts
   useEffect(() => {
-    const savedWishlist = localStorage.getItem('wishlist');
-    if (savedWishlist) {
-      const wishlistItems = JSON.parse(savedWishlist);
-      setIsWishlist(wishlistItems.includes(product.id));
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`/api/products/${id}`);
+        if (response.data.success && response.data.data) {
+          setProduct(response.data.data);
+          setSelectedColor(response.data.data.baseColour.toLowerCase());
+        } else {
+          setError('Product not found');
+        }
+      } catch (err: any) {
+        console.error('Error fetching product:', err);
+        setError(err.response?.status === 404 ? 'Product not found' : 'Failed to load product');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchProduct();
+    } else {
+      setError('Product ID is missing');
     }
-  }, [product.id]);
+  }, [id]);
 
   // Toggle wishlist
   const toggleWishlist = () => {
+    if (!product) {
+      toast.error('Product not found');
+      return;
+    }
+
     const savedWishlist = localStorage.getItem('wishlist');
     let wishlistItems: number[] = [];
     
     if (savedWishlist) {
-      wishlistItems = JSON.parse(savedWishlist);
+      try {
+        wishlistItems = JSON.parse(savedWishlist);
+        if (!Array.isArray(wishlistItems)) {
+          wishlistItems = [];
+        }
+      } catch (error) {
+        console.error('Error parsing wishlist:', error);
+        wishlistItems = [];
+      }
     }
 
     if (isWishlist) {
@@ -242,6 +168,11 @@ const ProductDetail: React.FC = () => {
       wishlistItems = wishlistItems.filter(id => id !== product.id);
       toast.success('Removed from wishlist');
     } else {
+      // Check if product is already in wishlist
+      if (wishlistItems.includes(product.id)) {
+        toast.error('Product is already in wishlist');
+        return;
+      }
       // Add to wishlist
       wishlistItems.push(product.id);
       toast.success('Added to wishlist');
@@ -251,11 +182,27 @@ const ProductDetail: React.FC = () => {
     setIsWishlist(!isWishlist);
   };
 
+  // Check if product is in wishlist on component mount
+  useEffect(() => {
+    const savedWishlist = localStorage.getItem('wishlist');
+    if (savedWishlist && product?.id) {
+      try {
+        const wishlistItems = JSON.parse(savedWishlist);
+        if (Array.isArray(wishlistItems)) {
+          setIsWishlist(wishlistItems.includes(product.id));
+        }
+      } catch (error) {
+        console.error('Error parsing wishlist:', error);
+        setIsWishlist(false);
+      }
+    }
+  }, [product?.id]);
+
   // Share product
   const shareProduct = async () => {
     const shareData = {
-      title: product.productDisplayName,
-      text: `Check out this ${product.brandName} ${product.productDisplayName} on our store!`,
+      title: product?.productDisplayName,
+      text: `Check out this ${product?.brandName} ${product?.productDisplayName} on our store!`,
       url: window.location.href
     };
 
@@ -284,47 +231,62 @@ const ProductDetail: React.FC = () => {
     setShowTryOn(false);
   };
 
-  // Add to cart
+  // Handle size selection
+  const handleSizeSelect = (size: string) => {
+    setSelectedSize(size);
+  };
+
+  // Handle add to cart with size validation
   const handleAddToCart = () => {
-    if (!selectedSize) {
-      alert('Please select a size');
+    if (!product) {
+      toast.error('Product not found');
       return;
     }
 
-    setIsAddingToCart(true);
+    if (!selectedSize) {
+      toast.error('Please select a size');
+      return;
+    }
 
     const cartItem = {
       id: product.id,
       name: product.productDisplayName,
       price: product.price,
+      image: product.styleImages.default.imageURL,
       size: selectedSize,
-      quantity: quantity,
-      image: productImages[0],
+      quantity: 1,
       brand: product.brandName,
       color: product.baseColour
     };
 
-    // Get existing cart items
     const savedCart = localStorage.getItem('cart');
-    let cartItems = savedCart ? JSON.parse(savedCart) : [];
-    
-    // Check if item already exists in cart
+    let cartItems = [];
+
+    if (savedCart) {
+      try {
+        cartItems = JSON.parse(savedCart);
+        if (!Array.isArray(cartItems)) {
+          cartItems = [];
+        }
+      } catch (error) {
+        console.error('Error parsing cart:', error);
+        cartItems = [];
+      }
+    }
+
+    // Check if item with same size already exists
     const existingItemIndex = cartItems.findIndex(
       (item: any) => item.id === cartItem.id && item.size === cartItem.size
     );
 
     if (existingItemIndex !== -1) {
-      // Update quantity if item exists
-      cartItems[existingItemIndex].quantity += cartItem.quantity;
+      cartItems[existingItemIndex].quantity += 1;
     } else {
-      // Add new item
       cartItems.push(cartItem);
     }
-    
-    // Save to localStorage
+
     localStorage.setItem('cart', JSON.stringify(cartItems));
-    // alert('Added to cart successfully!');
-    setIsAddingToCart(false);
+    toast.success('Added to cart');
   };
 
   // Handlers
@@ -451,7 +413,12 @@ const ProductDetail: React.FC = () => {
       const personImageBase64 = personImage.split(',')[1];
       
       // Get product image
-      const productImageResponse = await fetch(productImages[activeImage]);
+      const imageUrl = product?.styleImages.default.imageURL;
+      if (!imageUrl) {
+        throw new Error('Product image not found');
+      }
+      
+      const productImageResponse = await fetch(imageUrl);
       const productImageBlob = await productImageResponse.blob();
       const productImageBase64 = await fileToBase64(new File([productImageBlob], 'product.jpg'));
 
@@ -496,19 +463,87 @@ const ProductDetail: React.FC = () => {
     setError(null);
   };
 
-  // Fetch recommendations when component mounts
+  // Fetch recommendations when product data is loaded
   useEffect(() => {
     let isMounted = true;
     
     const loadRecommendations = async () => {
       if (!product?.id) {
-        console.error('Product or product ID is undefined');
-        return;
+        return; // Don't fetch recommendations if we don't have a product
       }
 
-      if (isMounted) {
+      setIsLoadingRecommendations(true);
+      try {
         console.log('Fetching recommendations for product:', product.id);
-        await fetchRecommendedProducts();
+        
+        // Fetch the product image as a blob
+        const imageResponse = await fetch(product.styleImages.default.imageURL);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch product image: ${imageResponse.status}`);
+        }
+        
+        const imageBlob = await imageResponse.blob();
+        const formData = new FormData();
+        formData.append('file', new File([imageBlob], `${product.id}.jpg`, { type: imageBlob.type }));
+
+        // POST the image to the backend
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiUrl}/api/recommend`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const recommendedIds = await response.json();
+        if (!Array.isArray(recommendedIds) || recommendedIds.length === 0) {
+          console.error('No recommended IDs received');
+          setRecommendedProducts([]);
+          return;
+        }
+
+        const recommendedProducts: RelatedProduct[] = [];
+        for (const id of recommendedIds) {
+          try {
+            const productData = await import(`../../../Dataset/styles/${id}.json`);
+            if (!productData || !productData.data) {
+              console.error(`Invalid product data for ID ${id}`);
+              continue;
+            }
+
+            const recProduct = productData.data;
+            recommendedProducts.push({
+              id: recProduct.id,
+              name: recProduct.productDisplayName,
+              price: recProduct.price,
+              originalPrice: recProduct.discountedPrice !== recProduct.price ? recProduct.price : undefined,
+              discount: recProduct.discountedPrice !== recProduct.price 
+                ? Math.round((1 - recProduct.discountedPrice / recProduct.price) * 100) 
+                : undefined,
+              rating: recProduct.myntraRating || 0,
+              reviews: Math.floor(Math.random() * 100) + 1,
+              image: recProduct.styleImages.default.imageURL,
+              colors: [recProduct.baseColour.toLowerCase()]
+            });
+          } catch (error) {
+            console.error(`Error loading product ${id}:`, error);
+          }
+        }
+        
+        if (isMounted && recommendedProducts.length > 0) {
+          setRecommendedProducts(recommendedProducts);
+        }
+      } catch (error) {
+        console.error('Error fetching recommendations:', error);
+        if (isMounted) {
+          toast.error('Failed to load recommendations');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingRecommendations(false);
+        }
       }
     };
 
@@ -517,103 +552,94 @@ const ProductDetail: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [product?.id]);
+  }, [product?.id]); // Only run when product ID changes
 
-  // Function to fetch recommended products
-  const fetchRecommendedProducts = async () => {
-    if (!product || !product.id) {
-      console.error('Product or product ID is undefined');
-      return;
-    }
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+      </div>
+    );
+  }
 
-    setIsLoadingRecommendations(true);
-    try {
-      console.log('Starting to fetch recommendations for product:', product.id);
-      
-      // Fetch the product image as a blob
-      console.log('Fetching product image from:', product.styleImages.default.imageURL);
-      const imageResponse = await fetch(product.styleImages.default.imageURL);
-      if (!imageResponse.ok) {
-        throw new Error(`Failed to fetch product image: ${imageResponse.status}`);
-      }
-      
-      const imageBlob = await imageResponse.blob();
-      console.log('Successfully fetched product image blob');
-      
-      const formData = new FormData();
-      formData.append('file', new File([imageBlob], `${product.id}.jpg`, { type: imageBlob.type }));
+  // Show error state
+  if (error || !product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
+          <p className="text-gray-600">{error || 'Product not found'}</p>
+          <Link to="/" className="mt-4 inline-block text-blue-600 hover:text-blue-800">
+            Return to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-      // POST the image to the backend
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      console.log('Sending request to:', `${apiUrl}/api/recommend`);
-      
-      const response = await fetch(`${apiUrl}/api/recommend`, {
-        method: 'POST',
-        body: formData,
-      });
+  // Product images from JSON
+  const productImages = [
+    product?.styleImages?.default?.imageURL,
+    product?.styleImages?.back?.imageURL,
+    product?.styleImages?.front?.imageURL,
+    product?.brandUserProfile?.image,
+  ].filter(Boolean); // Remove any undefined values
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('API Error:', errorData);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+  // Sizes available from JSON
+  const sizes = Array.isArray(product?.styleOptions) 
+    ? product.styleOptions
+        .filter(option => option?.name === 'Size' && option?.value)
+        .map(option => ({
+          value: option.value || '',
+          available: Boolean(option?.available)
+        }))
+    : [];
 
-      const recommendedIds = await response.json();
-      console.log('Received recommended IDs:', recommendedIds);
+  // Reviews
+  const reviews: Review[] = [
+    {
+      id: 1,
+      name: 'Alex Johnson',
+      rating: 5,
+      date: '12 Aug 2023',
+      comment: "This jersey is amazing! The fabric is so comfortable. I've been wearing it non-stop since I got it. The design is eye-catching and I've received many compliments.",
+      helpful: 24,
+    },
+    {
+      id: 2,
+      name: 'Sarah Miller',
+      rating: 4,
+      date: '28 Jul 2023',
+      comment: "Great quality jersey. The fit is perfect and the material feels premium. The only reason I'm giving 4 stars is because the color is slightly different from what I expected.",
+      helpful: 16,
+    },
+    {
+      id: 3,
+      name: 'Michael Chen',
+      rating: 4.5,
+      date: '15 Jul 2023',
+      comment: 'Excellent product for the price. The design is unique and the fabric is breathable. Perfect for cricket matches. Would definitely recommend!',
+      helpful: 9,
+    },
+  ];
 
-      if (!Array.isArray(recommendedIds) || recommendedIds.length === 0) {
-        console.error('No recommended IDs received');
-        setRecommendedProducts([]);
-        toast.error('No recommendations available at the moment');
-        return;
-      }
+  // Helper function to safely get nested values
+  const getNestedValue = (obj: any, path: string[], defaultValue: any = '') => {
+    return path.reduce((acc, part) => (acc && acc[part] !== undefined ? acc[part] : defaultValue), obj);
+  };
 
-      const recommendedProducts: RelatedProduct[] = [];
-      for (const id of recommendedIds) {
-        try {
-          console.log(`Loading product data for ID: ${id}`);
-          // Import the JSON file directly
-          const productData = await import(`../../../Dataset/styles/${id}.json`);
-          console.log(`Successfully loaded product ${id}:`, productData);
-          
-          if (!productData || !productData.data) {
-            console.error(`Invalid product data for ID ${id}`);
-            continue;
-          }
+  // Get product descriptors with fallbacks
+  const productDescriptors = {
+    description: getNestedValue(product, ['productDescriptors', 'description', 'value'], 'No description available'),
+    style_note: getNestedValue(product, ['productDescriptors', 'style_note', 'value'], 'No style notes available'),
+    materials_care_desc: getNestedValue(product, ['productDescriptors', 'materials_care_desc', 'value'], 'No materials and care information available')
+  };
 
-          const recProduct = productData.data;
-          const productInfo = {
-            id: recProduct.id,
-            name: recProduct.productDisplayName,
-            price: recProduct.price,
-            originalPrice: recProduct.discountedPrice !== recProduct.price ? recProduct.price : undefined,
-            discount: recProduct.discountedPrice !== recProduct.price 
-              ? Math.round((1 - recProduct.discountedPrice / recProduct.price) * 100) 
-              : undefined,
-            rating: recProduct.myntraRating || 0,
-            reviews: Math.floor(Math.random() * 100) + 1,
-            image: recProduct.styleImages.default.imageURL,
-            colors: [recProduct.baseColour.toLowerCase()]
-          };
-          console.log(`Processed product info for ID ${id}:`, productInfo);
-          recommendedProducts.push(productInfo);
-        } catch (error) {
-          console.error(`Error loading product ${id}:`, error);
-        }
-      }
-      
-      console.log('Final recommended products array:', recommendedProducts);
-      if (recommendedProducts.length > 0) {
-        setRecommendedProducts(recommendedProducts);
-      } else {
-        toast.error('No recommendations available at the moment');
-      }
-    } catch (error) {
-      console.error('Error fetching recommendations:', error);
-      toast.error('Failed to load recommendations');
-    } finally {
-      setIsLoadingRecommendations(false);
-    }
+  // Get article attributes with fallbacks
+  const articleAttributes = {
+    Fit: getNestedValue(product, ['articleAttributes', 'Fit'], 'Regular'),
+    Occasion: getNestedValue(product, ['articleAttributes', 'Occasion'], 'Casual')
   };
 
   return (
@@ -673,7 +699,7 @@ const ProductDetail: React.FC = () => {
                 transition={{ duration: 0.5 }}
               >
                 <img 
-                  src={productImages[activeImage]} 
+                  src={productImages[activeImage] || ''} 
                   alt={product.productDisplayName} 
                   className="w-full h-[500px] object-contain"
                 />
@@ -691,7 +717,7 @@ const ProductDetail: React.FC = () => {
                     whileHover={{ scale: 1.05 }}
                   >
                     <img 
-                      src={img} 
+                      src={img || ''} 
                       alt={`Product view ${index + 1}`} 
                       className="w-16 h-16 object-cover"
                     />
@@ -707,8 +733,8 @@ const ProductDetail: React.FC = () => {
             >
               <h3 className="text-xl font-bold mb-4">Product Description</h3>
               <div className="prose max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: product.productDescriptors.description.value }} />
-                <div className="mt-4" dangerouslySetInnerHTML={{ __html: product.productDescriptors.style_note.value }} />
+                <div dangerouslySetInnerHTML={{ __html: productDescriptors.description }} />
+                <div className="mt-4" dangerouslySetInnerHTML={{ __html: productDescriptors.style_note }} />
               </div>
             </motion.div>
           </div>
@@ -768,18 +794,16 @@ const ProductDetail: React.FC = () => {
                     className={`h-12 w-12 sm:h-14 sm:w-14 rounded-full border text-sm sm:text-base transition-all ${
                       selectedSize === size.value 
                         ? 'border-black bg-black text-white' 
-                        : size.available 
-                          ? 'border-gray-300 hover:border-gray-400' 
-                          : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'border-gray-300 hover:border-gray-400'
                     }`}
-                    onClick={() => size.available && setSelectedSize(size.value)}
-                    disabled={!size.available}
+                    onClick={() => handleSizeSelect(size.value)}
                   >
                     {size.value}
                   </button>
                 ))}
               </div>
             </motion.div>
+
 
             {/* Quantity */}
             <motion.div variants={fadeIn} className="mb-6">
@@ -870,15 +894,15 @@ const ProductDetail: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-gray-500">Material</p>
-                  <p dangerouslySetInnerHTML={{ __html: product.productDescriptors.materials_care_desc.value }} />
+                  <p dangerouslySetInnerHTML={{ __html: productDescriptors.materials_care_desc }} />
                 </div>
                 <div>
                   <p className="text-gray-500">Fit</p>
-                  <p>{product.articleAttributes.Fit}</p>
+                  <p>{articleAttributes.Fit}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Occasion</p>
-                  <p>{product.articleAttributes.Occasion}</p>
+                  <p>{articleAttributes.Occasion}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Season</p>
@@ -1184,13 +1208,21 @@ const ProductDetail: React.FC = () => {
         <TryOnDialog
           isOpen={showTryOn}
           onClose={closeTryOn}
-          productImage={productImages[activeImage]}
-          productName={product.productDisplayName}
+          productImage={productImages[activeImage] || ''}
+          productName={product.productDisplayName || ''}
           onAddToCart={handleAddToCart}
-          price={product.price}
+          price={product.price || 0}
         />
       </div>
     </div>
+  );
+};
+
+const ProductDetail: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <ProductDetailContent />
+    </ErrorBoundary>
   );
 };
 

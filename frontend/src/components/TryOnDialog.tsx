@@ -26,6 +26,8 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
   const [isAddingToCart, setIsAddingToCart] = useState<boolean>(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('Upper body');
+  const [lastErrorTime, setLastErrorTime] = useState<number>(0);
 
   // Handle person image upload
   const handlePersonUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,6 +66,14 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
       return;
     }
 
+    // Check if we're still in the rate limit window
+    const now = Date.now();
+    if (lastErrorTime > 0 && now - lastErrorTime < 60000) { // 1 minute cooldown
+      const secondsLeft = Math.ceil((60000 - (now - lastErrorTime)) / 1000);
+      setError(`Please wait ${secondsLeft} seconds before trying again. The API has rate limits.`);
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
@@ -84,7 +94,7 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
             {
               model_image: personImageBase64,
               cloth_image: productImageBase64,
-              category: 'Upper body',
+              category: selectedCategory,
               num_inference_steps: 35,
               guidance_scale: 2,
               seed: 50000,
@@ -102,14 +112,19 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
             const imageUrl = `data:image/jpeg;base64,${response.data.image}`;
             setTryOnResult(imageUrl);
             setRetryCount(0); // Reset retry count on success
+            setLastErrorTime(0); // Reset error time on success
           } else {
             throw new Error('Invalid response from API');
           }
         } catch (err: any) {
-          if (err.response?.status === 429 && retryCount < 3) {
-            // Wait for 2 seconds before retrying
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            return makeApiCall(retryCount + 1);
+          if (err.response?.status === 429) {
+            setLastErrorTime(Date.now());
+            if (retryCount < 3) {
+              // Wait for 2 seconds before retrying
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              return makeApiCall(retryCount + 1);
+            }
+            throw new Error('Rate limit exceeded. Please wait a minute before trying again.');
           }
           throw err;
         }
@@ -119,9 +134,9 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
     } catch (err: any) {
       console.error('API Error:', err);
       if (err.response?.status === 429) {
-        setError('Please wait a moment and try again.');
+        setError('The API is currently busy. Please wait a minute before trying again.');
       } else {
-        setError(err.response?.data?.message || 'Failed to perform virtual try-on. Please try again.');
+        setError(err.message || 'Failed to perform virtual try-on. Please try again.');
       }
     } finally {
       setIsProcessing(false);
@@ -228,6 +243,27 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
                         <FaTimes className="h-4 w-4" />
                       </button>
                     </div>
+
+                    {/* Category Selection */}
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Select Category</h4>
+                      <div className="flex flex-col space-y-2">
+                        {['Upper body', 'Lower body', 'Dress'].map((category) => (
+                          <label key={category} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="category"
+                              value={category}
+                              checked={selectedCategory === category}
+                              onChange={(e) => setSelectedCategory(e.target.value)}
+                              className="form-radio h-4 w-4 text-black border-gray-300 focus:ring-black"
+                            />
+                            <span className="text-gray-700">{category}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
                     <button
                       onClick={processTryOn}
                       disabled={isProcessing}
@@ -252,7 +288,12 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
                     animate={{ opacity: 1, y: 0 }}
                     className="p-4 bg-red-50 text-red-700 rounded-lg text-center font-medium border-2 border-red-200"
                   >
-                    {error}
+                    <p className="mb-2">{error}</p>
+                    {error.includes('wait') && (
+                      <p className="text-sm text-red-600">
+                        This is due to API rate limiting. We'll automatically retry up to 3 times.
+                      </p>
+                    )}
                   </motion.div>
                 )}
               </div>

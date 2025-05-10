@@ -12,10 +12,9 @@ const Footer = () => {
             transition={{ duration: 0.6 }}
             className="space-y-6"
           >
-            <h2 className="text-2xl font-bold">SHOP.CO</h2>
+            <h2 className="text-2xl font-bold">SNAPKART</h2>
             <p className="text-gray-400 leading-relaxed">
-              We are a fashion e-commerce platform that brings you the latest trends from around the world.
-              Our mission is to provide high-quality fashion at affordable prices.
+            Experience fashion like never before with our virtual try-on feature — try before you buy, anytime, anywhere.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-white hover:text-gray-300">
@@ -101,14 +100,14 @@ const Footer = () => {
         >
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-gray-400">
-              © 2024 SHOP.CO. All rights reserved.
+              © 2024 SNAPKART. All rights reserved.
             </p>
-            <div className="flex space-x-6">
+            {/* <div className="flex space-x-6">
               <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" className="h-8" />
               <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" alt="Mastercard" className="h-8" />
               <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/PayPal.svg/2560px-PayPal.svg.png" alt="PayPal" className="h-8" />
               <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Apple_Pay_logo.svg/2560px-Apple_Pay_logo.svg.png" alt="Apple Pay" className="h-8" />
-            </div>
+            </div> */}
           </div>
         </motion.div>
       </div>

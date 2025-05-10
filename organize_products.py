@@ -1,132 +1,155 @@
 import os
 import json
 import shutil
+import csv
 from pathlib import Path
+import logging
 
-def is_clothing_product(product_data):
-    # List of categories that are considered clothing
-    clothing_categories = {
-        'tops', 't-shirts', 'shirts', 'blouses', 'sweaters', 'hoodies', 'jackets', 'coats',
-        'dresses', 'skirts', 'pants', 'jeans', 'shorts', 'leggings', 'jumpsuits', 'rompers',
-        'suits', 'formal wear', 'casual wear', 'activewear', 'swimwear', 'sleepwear',
-        'underwear', 'lingerie', 'socks', 'stockings', 'tights'
-    }
-    
-    # Check if the product has a category field
-    if 'category' in product_data:
-        category = product_data['category'].lower()
-        return any(clothing_type in category for clothing_type in clothing_categories)
-    
-    # Check if the product has a type field
-    if 'type' in product_data:
-        product_type = product_data['type'].lower()
-        return any(clothing_type in product_type for clothing_type in clothing_categories)
-    
-    # Check if the product has a name/title field
-    name_fields = ['name', 'title', 'product_name', 'product_title']
-    for field in name_fields:
-        if field in product_data:
-            name = product_data[field].lower()
-            return any(clothing_type in name for clothing_type in clothing_categories)
-    
-    return False
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('organize_products.log'),
+        logging.StreamHandler()
+    ]
+)
 
-def is_accessory(product_data):
-    # List of categories that are considered accessories
-    accessory_categories = {
-        'accessories', 'jewelry', 'watches', 'bags', 'wallets', 'belts', 'scarves',
-        'gloves', 'hats', 'caps', 'sunglasses', 'eyewear', 'hair accessories',
-        'hair clips', 'hair bands', 'hair ties', 'necklaces', 'bracelets', 'earrings',
-        'rings', 'anklets', 'brooches', 'pins', 'ties', 'bow ties', 'cufflinks',
-        'gloves', 'mittens', 'socks', 'stockings', 'tights', 'shoes', 'sandals',
-        'boots', 'sneakers', 'heels', 'flats', 'loafers', 'mules', 'pumps'
-    }
-    
-    # Check if the product has a category field
-    if 'category' in product_data:
-        category = product_data['category'].lower()
-        return any(accessory_type in category for accessory_type in accessory_categories)
-    
-    # Check if the product has a type field
-    if 'type' in product_data:
-        product_type = product_data['type'].lower()
-        return any(accessory_type in product_type for accessory_type in accessory_categories)
-    
-    # Check if the product has a name/title field
-    name_fields = ['name', 'title', 'product_name', 'product_title']
-    for field in name_fields:
-        if field in product_data:
-            name = product_data[field].lower()
-            return any(accessory_type in name for accessory_type in accessory_categories)
-    
-    return False
+# Define clothing categories
+CLOTHING_CATEGORIES = {
+    'men': ['shirts', 't-shirts', 'pants', 'jeans', 'trousers', 'jackets', 'sweaters', 'hoodies', 'suits', 'sports wear'],
+    'women': ['tops', 'dresses', 'skirts', 'pants', 'jeans', 'sarees', 'kurtis', 'lehengas', 'blouses', 'sportswear'],
+    'summer': ['shorts', 't-shirts', 'dresses', 'skirts', 'tank tops', 'summer dresses'],
+    'winter': ['sweaters', 'jackets', 'coats', 'hoodies', 'thermal wear'],
+    'party': ['party wear', 'evening wear', 'formal wear'],
+    'latest': [],  # Will be determined by usage (ethnic)
+    'onsale': []   # Will be determined by discount
+}
 
-def remove_accessories():
-    # Path to the Latest Collections folder
-    latest_collections_dir = Path('Dataset/Latest Collections')
+def is_clothing_product(article_type):
+    """Check if the product is a clothing item."""
+    try:
+        article_type = article_type.lower()
+        # Check if it's in any of the clothing categories
+        for category_items in CLOTHING_CATEGORIES.values():
+            if any(item in article_type for item in category_items):
+                return True
+        return False
+    except Exception as e:
+        logging.error(f"Error in is_clothing_product: {str(e)}")
+        return False
+
+def get_product_categories(row):
+    """Determine which categories the product belongs to based on CSV data."""
+    categories = set()
     
-    # Create a backup directory for accessories
-    backup_dir = latest_collections_dir / 'accessories_backup'
-    backup_dir.mkdir(exist_ok=True)
-    
-    # Process each JSON file in the Latest Collections directory
-    for json_file in latest_collections_dir.glob('*.json'):
-        try:
-            # Read the JSON file
-            with open(json_file, 'r', encoding='utf-8') as f:
-                product_data = json.load(f)
+    try:
+        # Get product details from CSV row
+        gender = row['gender'].lower()
+        article_type = row['articleType'].lower()
+        season = row['season'].lower()
+        usage = row['usage'].lower()
+        
+        # Check if it's a clothing product
+        if not is_clothing_product(article_type):
+            return {'others'}
             
-            # Check if it's an accessory
-            if is_accessory(product_data):
-                # Move the file to the backup directory
-                shutil.move(str(json_file), str(backup_dir / json_file.name))
-                print(f"Moved {json_file.name} to accessories backup - It's an accessory")
+        # Check gender-based categories
+        if gender == 'men':
+            categories.add('men')
+        elif gender == 'women':
+            categories.add('women')
             
-        except json.JSONDecodeError:
-            print(f"Error: {json_file.name} is not a valid JSON file")
-        except Exception as e:
-            print(f"Error processing {json_file.name}: {str(e)}")
+        # Check seasonal categories
+        if 'summer' in season.lower():
+            categories.add('summer')
+        if 'winter' in season.lower():
+            categories.add('winter')
+            
+        # Check party wear
+        if any(party_type in article_type.lower() for party_type in ['party', 'evening', 'formal']):
+            categories.add('party')
+            
+        # Check latest (ethnic usage)
+        if 'ethnic' in usage.lower():
+            categories.add('latest')
+            
+    except Exception as e:
+        logging.error(f"Error in get_product_categories: {str(e)}")
+        
+    return categories if categories else {'others'}
 
 def organize_products():
-    # Get the current directory
-    current_dir = Path.cwd()
-    
-    # Create a directory for organized products if it doesn't exist
-    organized_dir = current_dir / 'organized_products'
-    organized_dir.mkdir(exist_ok=True)
-    
-    # Process each JSON file in the current directory
-    for json_file in current_dir.glob('*.json'):
-        try:
-            # Read the JSON file
-            with open(json_file, 'r', encoding='utf-8') as f:
-                product_data = json.load(f)
+    try:
+        # Create necessary directories
+        base_dir = Path('Dataset')
+        styles_dir = base_dir / 'styles'
+        organized_dir = base_dir / 'organized_products'
+        csv_file = base_dir / 'styles.csv'
+        
+        # Check if required files exist
+        if not styles_dir.exists():
+            logging.error(f"Styles directory not found at: {styles_dir}")
+            return
+        if not csv_file.exists():
+            logging.error(f"CSV file not found at: {csv_file}")
+            return
             
-            # Skip if it's not a clothing product
-            if not is_clothing_product(product_data):
-                print(f"Skipping {json_file.name} - Not a clothing product")
-                continue
-            
-            # Determine the category
-            category = 'uncategorized'
-            if 'category' in product_data:
-                category = product_data['category'].lower()
-            elif 'type' in product_data:
-                category = product_data['type'].lower()
-            
-            # Create category directory
+        logging.info(f"Found styles directory at: {styles_dir}")
+        logging.info(f"Found CSV file at: {csv_file}")
+        
+        # Create category directories
+        for category in CLOTHING_CATEGORIES.keys():
             category_dir = organized_dir / category
-            category_dir.mkdir(exist_ok=True)
+            category_dir.mkdir(parents=True, exist_ok=True)
+            logging.info(f"Created directory: {category_dir}")
             
-            # Copy the file to the appropriate category directory
-            shutil.copy2(json_file, category_dir / json_file.name)
-            print(f"Organized {json_file.name} into {category} category")
-            
-        except json.JSONDecodeError:
-            print(f"Error: {json_file.name} is not a valid JSON file")
-        except Exception as e:
-            print(f"Error processing {json_file.name}: {str(e)}")
+        others_dir = organized_dir / 'others'
+        others_dir.mkdir(parents=True, exist_ok=True)
+        logging.info(f"Created directory: {others_dir}")
+        
+        # Read CSV file
+        product_data = {}
+        with open(csv_file, 'r', encoding='utf-8') as f:
+            csv_reader = csv.DictReader(f)
+            for row in csv_reader:
+                product_data[row['id']] = row
+        
+        # Process each JSON file
+        json_files = list(styles_dir.glob('*.json'))
+        total_files = len(json_files)
+        logging.info(f"Found {total_files} JSON files to process")
+        
+        for index, json_file in enumerate(json_files, 1):
+            try:
+                file_id = json_file.stem  # Get filename without extension
+                logging.info(f"Processing file {index}/{total_files}: {json_file.name}")
+                
+                if file_id in product_data:
+                    # Get categories for the product
+                    categories = get_product_categories(product_data[file_id])
+                    
+                    # Copy file to each relevant category folder
+                    for category in categories:
+                        dest_path = organized_dir / category / json_file.name
+                        shutil.copy2(json_file, dest_path)
+                        logging.info(f"Copied {json_file.name} to {category} category")
+                else:
+                    # If product ID not found in CSV, move to others
+                    dest_path = others_dir / json_file.name
+                    shutil.copy2(json_file, dest_path)
+                    logging.info(f"Moved {json_file.name} to others category (ID not found in CSV)")
+                    
+            except Exception as e:
+                logging.error(f"Error processing {json_file.name}: {str(e)}")
+                
+    except Exception as e:
+        logging.error(f"Error in organize_products: {str(e)}")
 
 if __name__ == "__main__":
-    remove_accessories()
-    organize_products() 
+    try:
+        logging.info("Starting product organization...")
+        organize_products()
+        logging.info("Product organization completed!")
+    except Exception as e:
+        logging.error(f"Fatal error: {str(e)}") 
