@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 
 // Icons
 import { 
@@ -21,14 +22,75 @@ import {
   FaBox,
   FaTruck,
   FaStar,
+  FaStarHalfAlt,
+  FaRegStar,
   FaPercent
 } from 'react-icons/fa';
+
+// Product interface
+interface Product {
+  id: number;
+  price: number;
+  discountedPrice: number;
+  productDisplayName: string;
+  brandName: string;
+  baseColour: string;
+  myntraRating: number;
+  articleNumber: string;
+  displayCategories: string;
+  season: string;
+  gender: string;
+  styleImages: {
+    default: { 
+      imageURL: string;
+      resolutions?: {
+        [key: string]: string;
+      };
+    };
+    back: { 
+      imageURL: string;
+      resolutions?: {
+        [key: string]: string;
+      };
+    };
+    front: { 
+      imageURL: string;
+      resolutions?: {
+        [key: string]: string;
+      };
+    };
+  };
+  styleOptions: Array<{
+    name: string;
+    value: string;
+    available: boolean;
+  }>;
+}
+
+// Render star rating helper function
+const renderStarRating = (rating: number) => {
+  const stars = [];
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 !== 0;
+  
+  for (let i = 1; i <= 5; i++) {
+    if (i <= fullStars) {
+      stars.push(<FaStar key={i} className="text-yellow-400" />);
+    } else if (i === fullStars + 1 && hasHalfStar) {
+      stars.push(<FaStarHalfAlt key={i} className="text-yellow-400" />);
+    } else {
+      stars.push(<FaRegStar key={i} className="text-yellow-400" />);
+    }
+  }
+  
+  return stars;
+};
 
 // Sample user data
 const userData = {
   name: 'Sai Kiran Naik',
   email: 'saikirannaik03@gmail.com',
-  phone: '+91 8*****48',
+  phone: '+91 8*******58',
   profileImage: 'Kiran.jpg',
   memberSince: 'June 2021',
   loyaltyPoints: 1250,
@@ -104,25 +166,25 @@ const userData = {
     {
       id: 1,
       type: 'Home',
-      name: 'Alex Johnson',
+      name: 'Sai Kiran Naik',
       address: '123 Main Street, Apt 4B',
-      city: 'New York',
-      state: 'NY',
-      zip: '10001',
-      country: 'United States',
-      phone: '+1 (555) 123-4567',
+      city: 'Hyderabad',
+      state: 'TL',
+      zip: '500055',
+      country: 'India',
+      phone: '+91 8*******58',
       isDefault: true
     },
     {
       id: 2,
       type: 'Work',
-      name: 'Alex Johnson',
+      name: 'Sai Kiran Naik',
       address: '456 Business Ave, Suite 200',
-      city: 'New York',
-      state: 'NY',
+      city: 'Hyderabad',
+      state: '500054',
       zip: '10002',
-      country: 'United States',
-      phone: '+1 (555) 987-6543',
+      country: 'India',
+      phone: '+91 8*******58',
       isDefault: false
     }
   ],
@@ -132,7 +194,7 @@ const userData = {
       type: 'Visa',
       cardNumber: '**** **** **** 4567',
       expiryDate: '05/25',
-      cardholderName: 'Alex Johnson',
+      cardholderName: 'Sai Kiran Naik',
       isDefault: true
     },
     {
@@ -140,7 +202,7 @@ const userData = {
       type: 'Mastercard',
       cardNumber: '**** **** **** 8901',
       expiryDate: '09/24',
-      cardholderName: 'Alex Johnson',
+      cardholderName: 'Sai Kiran Naik',
       isDefault: false
     }
   ],
@@ -806,66 +868,269 @@ const UserProfile: React.FC = () => {
     </motion.div>
   );
   
-  const WishlistTab = () => (
-    <motion.div 
-      variants={tabVariants}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-      className="space-y-6"
-    >
-      <h2 className="text-xl font-bold mb-4">My Wishlist</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {userData.wishlist.map((item) => (
-          <motion.div 
-            key={item.id}
-            variants={cardVariants}
-            initial="hidden"
-            animate="visible"
-            whileHover="hover"
-            className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col"
+  const WishlistTab = () => {
+    const [wishlistProducts, setWishlistProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [selectedSize, setSelectedSize] = useState<{[key: number]: string}>({});
+
+    // Fetch wishlist products
+    useEffect(() => {
+      const fetchWishlistProducts = async () => {
+        const savedWishlist = localStorage.getItem('wishlist');
+        if (!savedWishlist) {
+          setWishlistProducts([]);
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const wishlistIds = JSON.parse(savedWishlist);
+          if (!Array.isArray(wishlistIds) || wishlistIds.length === 0) {
+            setWishlistProducts([]);
+            setLoading(false);
+            return;
+          }
+
+          setLoading(true);
+          const products = await Promise.all(
+            wishlistIds.map(async (id) => {
+              try {
+                const response = await axios.get(`/api/products/${id}`);
+                if (response.data.success && response.data.data) {
+                  return response.data.data;
+                }
+                return null;
+              } catch (error) {
+                console.error(`Error fetching product ${id}:`, error);
+                return null;
+              }
+            })
+          );
+
+          // Filter out any null values and set the products
+          const validProducts = products.filter((product): product is Product => product !== null);
+          setWishlistProducts(validProducts);
+          
+          // Initialize selected sizes
+          const initialSizes: {[key: number]: string} = {};
+          validProducts.forEach(product => {
+            const availableSizes = product.styleOptions
+              .filter(option => option.name === 'Size' && option.available)
+              .map(option => option.value);
+            if (availableSizes.length > 0) {
+              initialSizes[product.id] = availableSizes[0];
+            }
+          });
+          setSelectedSize(initialSizes);
+        } catch (error) {
+          console.error('Error fetching wishlist products:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchWishlistProducts();
+    }, []);
+
+    // Remove from wishlist
+    const removeFromWishlist = (productId: number) => {
+      const savedWishlist = localStorage.getItem('wishlist');
+      if (savedWishlist) {
+        try {
+          const wishlistIds = JSON.parse(savedWishlist);
+          const updatedWishlist = wishlistIds.filter((id: number) => id !== productId);
+          localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+          setWishlistProducts(prev => prev.filter(p => p.id !== productId));
+        } catch (error) {
+          console.error('Error updating wishlist:', error);
+        }
+      }
+    };
+
+    // Add to cart
+    const addToCart = (productId: number) => {
+      const size = selectedSize[productId];
+      const product = wishlistProducts.find(p => p.id === productId);
+      if (product) {
+        const cartItem = {
+          id: product.id,
+          name: product.productDisplayName,
+          price: product.price,
+          image: product.styleImages.default.imageURL,
+          size: size,
+          quantity: 1,
+          brand: product.brandName,
+          color: product.baseColour
+        };
+
+        const savedCart = localStorage.getItem('cart');
+        let cartItems = [];
+
+        if (savedCart) {
+          try {
+            cartItems = JSON.parse(savedCart);
+            if (!Array.isArray(cartItems)) {
+              cartItems = [];
+            }
+          } catch (error) {
+            console.error('Error parsing cart:', error);
+            cartItems = [];
+          }
+        }
+
+        // Check if item with same size already exists
+        const existingItemIndex = cartItems.findIndex(
+          (item: any) => item.id === cartItem.id && item.size === cartItem.size
+        );
+
+        if (existingItemIndex !== -1) {
+          cartItems[existingItemIndex].quantity += 1;
+        } else {
+          cartItems.push(cartItem);
+        }
+
+        localStorage.setItem('cart', JSON.stringify(cartItems));
+        alert(`Added ${product.productDisplayName} (Size: ${size}) to cart`);
+      }
+    };
+
+    // Handle size selection
+    const handleSizeChange = (productId: number, size: string) => {
+      setSelectedSize({...selectedSize, [productId]: size});
+    };
+
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+        </div>
+      );
+    }
+
+    return (
+      <motion.div 
+        variants={tabVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="space-y-6"
+      >
+        <h2 className="text-xl font-bold mb-4">My Wishlist</h2>
+        {wishlistProducts.length === 0 ? (
+          <div className="bg-white rounded-xl p-12 shadow-sm text-center">
+            <div className="flex justify-center mb-4">
+              <FaHeart className="h-16 w-16 text-gray-300" />
+            </div>
+            <h2 className="text-2xl font-medium text-gray-900 mb-2">Your wishlist is empty</h2>
+            <p className="text-gray-600 mb-6">Browse our collections and add your favorite items to your wishlist.</p>
+            <Link 
+              to="/" 
+              className="inline-block bg-black text-white px-6 py-3 rounded-md font-medium hover:bg-gray-800 transition-colors"
+            >
+              Continue Shopping
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {wishlistProducts.map((product) => (
+              <motion.div 
+                key={product.id}
+                variants={cardVariants}
+                initial="hidden"
+                animate="visible"
+                whileHover="hover"
+                className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col"
+              >
+                <div className="relative h-48">
+                  <img 
+                    src={product.styleImages.default.imageURL} 
+                    alt={product.productDisplayName}
+                    className="w-full h-full object-cover"
+                  />
+                  <button 
+                    className="absolute top-2 right-2 text-red-500 bg-white p-2 rounded-full shadow-sm hover:shadow-md transition-shadow"
+                    onClick={() => removeFromWishlist(product.id)}
+                  >
+                    <FaHeart className="h-4 w-4" />
+                  </button>
+                  {product.discountedPrice !== product.price && (
+                    <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+                      {Math.round((1 - product.discountedPrice / product.price) * 100)}% OFF
+                    </span>
+                  )}
+                </div>
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-1">{product.productDisplayName}</h3>
+                    <div className="flex items-center mb-1">
+                      <div className="flex mr-1">
+                        {renderStarRating(product.myntraRating)}
+                      </div>
+                      <span className="text-xs text-gray-500">({product.myntraRating})</span>
+                    </div>
+                    <div className="flex items-center mb-1">
+                      <span className="font-bold text-gray-900">₹{product.price}</span>
+                      {product.discountedPrice !== product.price && (
+                        <span className="ml-2 text-sm text-gray-500 line-through">₹{product.discountedPrice}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Size Selection */}
+                  <div className="mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Select Size
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {product.styleOptions
+                        .filter(option => option.name === 'Size' && option.available)
+                        .map(option => (
+                          <button
+                            key={option.value}
+                            className={`px-3 py-1 ${
+                              selectedSize[product.id] === option.value 
+                                ? 'bg-black text-white border-black' 
+                                : 'bg-white text-gray-700 border-gray-300 hover:border-black'
+                            }`}
+                            onClick={() => handleSizeChange(product.id, option.value)}
+                          >
+                            {option.value}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button 
+                      className="w-full py-2 bg-black text-white rounded-md font-medium hover:bg-gray-800 transition-colors flex items-center justify-center"
+                      onClick={() => addToCart(product.id)}
+                    >
+                      <FaShoppingBag className="mr-2 h-4 w-4" />
+                      Add to Cart
+                    </button>
+                    <button 
+                      className="w-12  bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 transition-colors flex items-center justify-center"
+                      onClick={() => removeFromWishlist(product.id)}
+                    >
+                      <FaTrashAlt className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+        <div className="text-center mt-4">
+          <Link 
+            to="/wishlist" 
+            className="text-black font-medium hover:underline"
           >
-            <div className="relative h-48">
-              <img 
-                src={item.image} 
-                alt={item.name}
-                className="w-full h-full object-cover"
-              />
-              <button className="absolute top-2 right-2 text-red-500 bg-white p-2 rounded-full shadow-sm hover:shadow-md transition-shadow">
-                <FaHeart className="h-4 w-4" />
-              </button>
-              {/* Example badge for sale/stock */}
-              <span className="absolute top-2 left-2 bg-yellow-400 text-white text-xs font-bold px-2 py-1 rounded">SALE</span>
-            </div>
-            <div className="p-4 flex-1 flex flex-col justify-between">
-              <div>
-                <h3 className="font-medium text-gray-900 mb-1">{item.name}</h3>
-                <p className="font-bold text-gray-900 mb-3">₹{item.price}</p>
-              </div>
-              <div className="flex gap-2 mt-2">
-                <button className="w-full py-2 bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center">
-                  <FaShoppingBag className="mr-2 h-4 w-4" />
-                  Move to Cart
-                </button>
-                <button className="w-full py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 transition-colors flex items-center justify-center">
-                  <FaTrashAlt className="mr-2 h-4 w-4" />
-                  Remove
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      <div className="text-center mt-4">
-        <Link 
-          to="/wishlist" 
-          className="text-black font-medium hover:underline"
-        >
-          View All Wishlist Items
-        </Link>
-      </div>
-    </motion.div>
-  );
+            View All Wishlist Items
+          </Link>
+        </div>
+      </motion.div>
+    );
+  };
   
   return (
     <motion.div 

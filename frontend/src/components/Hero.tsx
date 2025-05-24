@@ -100,13 +100,13 @@ const Hero = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex justify-between items-center grayscale">
-          <img src="levis.png" alt="Levi's" className="h-10" />
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Zara_Logo.svg/2560px-Zara_Logo.svg.png" alt="Zara" className="h-8" />
-          <img src="dior.svg" alt="Dior" className="h-6 font-bold" />
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/1960s_Gucci_Logo.svg/2560px-1960s_Gucci_Logo.svg.png" alt="Gucci" className="h-8" />
-          <img src="prada.png" alt="Prada" className="h-8" />
-          <img src="Ck.svg" alt="Calvin Klein" className="h-6 font-bold" />
+        <div className="flex overflow-x-auto gap-8 md:justify-between md:items-center grayscale pb-4 md:pb-0">
+          <img src="levis.png" alt="Levi's" className="h-10 flex-shrink-0" />
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Zara_Logo.svg/2560px-Zara_Logo.svg.png" alt="Zara" className="h-8 flex-shrink-0" />
+          <img src="dior.svg" alt="Dior" className="h-6 font-bold flex-shrink-0" />
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/1960s_Gucci_Logo.svg/2560px-1960s_Gucci_Logo.svg.png" alt="Gucci" className="h-8 flex-shrink-0" />
+          <img src="prada.png" alt="Prada" className="h-8 flex-shrink-0" />
+          <img src="Ck.svg" alt="Calvin Klein" className="h-6 font-bold flex-shrink-0" />
         </div>
       </div>
     </div>

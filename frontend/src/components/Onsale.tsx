@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Link } from 'react-router-dom';
 import { FaHeart, FaRegStar, FaStar, FaStarHalfAlt } from 'react-icons/fa';
 import api from '../config/axios';
+import { ProductSkeleton } from './Skeletons';
 
 interface Product {
   id: number;
@@ -143,10 +144,20 @@ const Onsale = () => {
 
   if (loading) {
     return (
-      <section className="py-20 bg-gradient-to-b from-white to-gray-50">
+      <section className="py-10 bg-gradient-to-b from-white to-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center items-center h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+              ON SALE
+            </h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              Grab these amazing deals before they're gone
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[...Array(4)].map((_, index) => (
+              <ProductSkeleton key={index} />
+            ))}
           </div>
         </div>
       </section>
@@ -192,11 +203,7 @@ const Onsale = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <div className="absolute top-3 left-3">
                       <div className="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] animate-pulse">
-                        SALE{product.discountedPrice < product.price && (
-                      <div className="">
-                        {Math.round(((product.price - product.discountedPrice) / product.price) * 100)}%
-                      </div>
-                    )}
+                        SALE {Math.round(((product.price - product.discountedPrice) / product.price) * 100)}%
                       </div>
                     </div>
                     

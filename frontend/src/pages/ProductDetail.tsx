@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import TryOnDialog from '../components/TryOnDialog';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { ProductDetailSkeleton } from '../components/Skeletons';
 
 // Icons
 import { FaStar, FaStarHalfAlt, FaRegStar, FaShoppingCart, FaHeart, FaShare, FaChevronRight, FaTruck, FaUndo, FaExchangeAlt, FaTimes, FaCamera } from 'react-icons/fa';
@@ -234,17 +235,39 @@ const ProductDetailContent: React.FC = () => {
   // Handle size selection
   const handleSizeSelect = (size: string) => {
     setSelectedSize(size);
+    toast.success(`Size ${size} selected`, {
+      icon: '👕',
+      duration: 2000,
+      style: {
+        background: '#DCFCE7',
+        color: '#166534',
+        padding: '16px',
+        borderRadius: '8px',
+      },
+    });
   };
 
   // Handle add to cart with size validation
   const handleAddToCart = () => {
     if (!product) {
-      toast.error('Product not found');
+      toast.error('Product not found', {
+        icon: '❌',
+        duration: 3000,
+      });
       return;
     }
 
     if (!selectedSize) {
-      toast.error('Please select a size');
+      toast.error('Please select a size first', {
+        icon: '⚠️',
+        duration: 3000,
+        style: {
+          background: '#FEE2E2',
+          color: '#991B1B',
+          padding: '16px',
+          borderRadius: '8px',
+        },
+      });
       return;
     }
 
@@ -252,9 +275,10 @@ const ProductDetailContent: React.FC = () => {
       id: product.id,
       name: product.productDisplayName,
       price: product.price,
+      discountedPrice: product.discountedPrice,
       image: product.styleImages.default.imageURL,
       size: selectedSize,
-      quantity: 1,
+      quantity: quantity,
       brand: product.brandName,
       color: product.baseColour
     };
@@ -280,18 +304,67 @@ const ProductDetailContent: React.FC = () => {
     );
 
     if (existingItemIndex !== -1) {
-      cartItems[existingItemIndex].quantity += 1;
+      cartItems[existingItemIndex].quantity += quantity;
+      toast.success(`Added ${quantity} more to cart`, {
+        icon: '🛒',
+        duration: 2000,
+        style: {
+          background: '#DCFCE7',
+          color: '#166534',
+          padding: '16px',
+          borderRadius: '8px',
+        },
+      });
     } else {
       cartItems.push(cartItem);
+      toast.success('Added to cart successfully!', {
+        icon: '🛒',
+        duration: 2000,
+        style: {
+          background: '#DCFCE7',
+          color: '#166534',
+          padding: '16px',
+          borderRadius: '8px',
+        },
+      });
     }
 
     localStorage.setItem('cart', JSON.stringify(cartItems));
-    toast.success('Added to cart');
+    
+    // Dispatch custom event for cart update
+    window.dispatchEvent(new Event('cartUpdated'));
   };
 
   // Handlers
-  const incrementQuantity = () => setQuantity(prev => prev + 1);
-  const decrementQuantity = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
+  const incrementQuantity = () => {
+    setQuantity(prev => prev + 1);
+    toast.success('Quantity increased', {
+      icon: '➕',
+      duration: 1000,
+      style: {
+        background: '#DCFCE7',
+        color: '#166534',
+        padding: '16px',
+        borderRadius: '8px',
+      },
+    });
+  };
+  
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(prev => prev - 1);
+      toast.success('Quantity decreased', {
+        icon: '➖',
+        duration: 1000,
+        style: {
+          background: '#DCFCE7',
+          color: '#166534',
+          padding: '16px',
+          borderRadius: '8px',
+        },
+      });
+    }
+  };
   
   // Form handlers
   const [reviewName, setReviewName] = useState<string>('');
@@ -556,11 +629,7 @@ const ProductDetailContent: React.FC = () => {
 
   // Show loading state
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   // Show error state
@@ -600,7 +669,7 @@ const ProductDetailContent: React.FC = () => {
   const reviews: Review[] = [
     {
       id: 1,
-      name: 'Alex Johnson',
+      name: 'Shashank Reddy',
       rating: 5,
       date: '12 Aug 2023',
       comment: "This jersey is amazing! The fabric is so comfortable. I've been wearing it non-stop since I got it. The design is eye-catching and I've received many compliments.",
@@ -608,7 +677,7 @@ const ProductDetailContent: React.FC = () => {
     },
     {
       id: 2,
-      name: 'Sarah Miller',
+      name: 'Sharath Chandra',
       rating: 4,
       date: '28 Jul 2023',
       comment: "Great quality jersey. The fit is perfect and the material feels premium. The only reason I'm giving 4 stars is because the color is slightly different from what I expected.",
@@ -616,7 +685,7 @@ const ProductDetailContent: React.FC = () => {
     },
     {
       id: 3,
-      name: 'Michael Chen',
+      name: 'Murthy(sir)',
       rating: 4.5,
       date: '15 Jul 2023',
       comment: 'Excellent product for the price. The design is unique and the fabric is breathable. Perfect for cricket matches. Would definitely recommend!',
@@ -965,7 +1034,7 @@ const ProductDetailContent: React.FC = () => {
                     <div className="flex-1 flex flex-col p-4">
                     <h3 className="font-semibold text-base line-clamp-2 mb-1 text-gray-900 group-hover:text-blue-700 transition-colors">{product.name}</h3>
                     {/* Rating and reviews */}
-                    <div className="flex items-center mt-1 mb-2">
+                    <div className="flex items-center mt-1">
                         <div className="flex text-xs text-yellow-400">
                           {renderStarRating(product.rating)}
                         </div>
@@ -981,7 +1050,7 @@ const ProductDetailContent: React.FC = () => {
                         )}
                       </div>
                     {/* Color Swatches */}
-                      <div className="mt-3 flex space-x-1">
+                      <div className="mt-1 mb-1 flex space-x-1">
                         {product.colors.map((color, i) => (
                           <div
                             key={i}
@@ -993,7 +1062,7 @@ const ProductDetailContent: React.FC = () => {
                     {/* View Details Button */}
                       <Link
                         to={`/product/${product.id}`}
-                      className="mt-auto w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-sm font-medium transition-colors block text-center shadow-sm group-hover:bg-blue-200 group-hover:text-blue-900"
+                        className="mt-auto w-full py-2 bg-gray-50 hover:bg-gray-500 text-gray-700 rounded text-sm font-medium transition-colors block text-center shadow-sm group-hover:bg-gray-200 group-hover:text-gray-900"
                       >
                         View Details
                       </Link>

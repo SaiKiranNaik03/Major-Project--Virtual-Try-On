@@ -84,6 +84,28 @@ const colorMap: { [key: string]: string } = {
   'Wine': '#722F37'
 };
 
+// Add this after the colorMap constant and before the MenCollection component
+const ProductSkeleton = () => {
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100">
+      <div className="relative">
+        <div className="w-full h-80 bg-gray-200 animate-pulse"></div>
+      </div>
+      <div className="p-5">
+        <div className="h-6 bg-gray-200 rounded animate-pulse mb-2"></div>
+        <div className="h-4 bg-gray-200 rounded animate-pulse mb-2 w-2/3"></div>
+        <div className="flex space-x-1 mb-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+          ))}
+        </div>
+        <div className="h-6 bg-gray-200 rounded animate-pulse w-1/3 mb-3"></div>
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-1/4"></div>
+      </div>
+    </div>
+  );
+};
+
 const MenCollection: React.FC = () => {
   // State for products and filters
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -95,6 +117,22 @@ const MenCollection: React.FC = () => {
   const [showMobileFilters, setShowMobileFilters] = useState<boolean>(false);
   const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
   const [wishlist, setWishlist] = useState<number[]>([]);
+
+  // Initialize wishlist from localStorage
+  useEffect(() => {
+    const savedWishlist = localStorage.getItem('wishlist');
+    if (savedWishlist) {
+      try {
+        const wishlistIds = JSON.parse(savedWishlist);
+        if (Array.isArray(wishlistIds)) {
+          setWishlist(wishlistIds);
+        }
+      } catch (error) {
+        console.error('Error parsing wishlist from localStorage:', error);
+        setWishlist([]);
+      }
+    }
+  }, []);
 
   // Fetch products using React Query
   const { data: productsData, isLoading } = useQuery<ProductsResponse>({
@@ -130,11 +168,32 @@ const MenCollection: React.FC = () => {
 
   // Toggle wishlist
   const toggleWishlist = (productId: number) => {
-    if (wishlist.includes(productId)) {
-      setWishlist(wishlist.filter(id => id !== productId));
-    } else {
-      setWishlist([...wishlist, productId]);
+    const savedWishlist = localStorage.getItem('wishlist');
+    let wishlistIds: number[] = [];
+    
+    if (savedWishlist) {
+      try {
+        wishlistIds = JSON.parse(savedWishlist);
+        if (!Array.isArray(wishlistIds)) {
+          wishlistIds = [];
+        }
+      } catch (error) {
+        console.error('Error parsing wishlist:', error);
+        wishlistIds = [];
+      }
     }
+
+    if (wishlistIds.includes(productId)) {
+      // Remove from wishlist
+      wishlistIds = wishlistIds.filter(id => id !== productId);
+    } else {
+      // Add to wishlist
+      wishlistIds.push(productId);
+    }
+
+    // Save to localStorage
+    localStorage.setItem('wishlist', JSON.stringify(wishlistIds));
+    setWishlist(wishlistIds);
   };
 
   // Handle filter changes
@@ -230,8 +289,70 @@ const MenCollection: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+      <div className="bg-white min-h-screen pt-24 pb-16">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Breadcrumb Skeleton */}
+          <div className="flex py-4 mb-8">
+            <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-4 w-4 bg-gray-200 rounded animate-pulse mx-2"></div>
+            <div className="h-4 w-16 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+
+          {/* Mobile Filter Button Skeleton */}
+          <div className="lg:hidden mb-6">
+            <div className="h-12 bg-gray-200 rounded-xl animate-pulse"></div>
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Sidebar Filters Skeleton */}
+            <div className="hidden lg:block w-72 flex-shrink-0">
+              <div className="bg-white rounded-2xl p-6 shadow-lg sticky top-24 border border-gray-100">
+                <div className="space-y-8">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i}>
+                      <div className="h-6 bg-gray-200 rounded animate-pulse mb-4"></div>
+                      <div className="space-y-3">
+                        {[...Array(4)].map((_, j) => (
+                          <div key={j} className="h-5 bg-gray-200 rounded animate-pulse"></div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Main Content Skeleton */}
+            <div className="flex-1">
+              {/* Sort and Results Count Skeleton */}
+              <div className="bg-white rounded-2xl p-6 mb-8 shadow-lg border border-gray-100">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="h-6 bg-gray-200 rounded animate-pulse w-48 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
+                  </div>
+                  <div className="h-10 bg-gray-200 rounded-xl animate-pulse w-40"></div>
+                </div>
+              </div>
+
+              {/* Products Grid Skeleton */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <ProductSkeleton key={i} />
+                ))}
+              </div>
+
+              {/* Pagination Skeleton */}
+              <div className="mt-12 flex justify-center">
+                <div className="flex space-x-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-12 w-12 bg-gray-200 rounded-xl animate-pulse"></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

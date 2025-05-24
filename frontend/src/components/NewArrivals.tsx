@@ -4,6 +4,7 @@ import { useInView } from 'react-intersection-observer';
 import { Link } from 'react-router-dom';
 import { FaHeart, FaRegStar, FaStar, FaStarHalfAlt } from 'react-icons/fa';
 import api from '../config/axios';
+import { ProductSkeleton } from './Skeletons';
 
 interface Product {
   id: number;
@@ -76,10 +77,20 @@ const NewArrivals = () => {
 
   if (loading) {
     return (
-      <section className="py-20 bg-gradient-to-b from-white to-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center items-center h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      <section className="py-10 bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-3 lg:px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              NEW ARRIVALS
+            </h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              Discover our latest collection of fresh styles and trends
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[...Array(4)].map((_, index) => (
+              <ProductSkeleton key={index} />
+            ))}
           </div>
         </div>
       </section>
@@ -128,19 +139,17 @@ const NewArrivals = () => {
                         NEW
                       </div>
                     </div>
-                    {product.discountedPrice < product.price && (
-                      <div className="absolute top-3 right-3">
-                        <button 
-                          className="bg-white p-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            toggleWishlist(product.id);
-                          }}
-                        >
-                          <FaHeart className={`h-5 w-5 ${wishlist.includes(product.id) ? 'text-red-500' : 'text-gray-400'}`} />
-                        </button>
-                      </div>
-                    )}
+                    <div className="absolute top-3 right-3">
+                      <button 
+                        className="bg-white p-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleWishlist(product.id);
+                        }}
+                      >
+                        <FaHeart className={`h-5 w-5 ${wishlist.includes(product.id) ? 'text-red-500' : 'text-gray-400'}`} />
+                      </button>
+                    </div>
                   </div>
                 </Link>
                 

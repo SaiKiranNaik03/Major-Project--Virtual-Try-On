@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCartIcon, UserIcon, MagnifyingGlassIcon, HeartIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
@@ -6,35 +6,69 @@ import { Link } from 'react-router-dom';
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   // Handle scroll effect
-  useState(() => {
+  useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 0);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  });
+  }, []);
+
+  // Update cart count when cart changes
+  useEffect(() => {
+    const updateCartCount = () => {
+      const savedCart = localStorage.getItem('cart');
+      if (savedCart) {
+        try {
+          const cartItems = JSON.parse(savedCart);
+          if (Array.isArray(cartItems)) {
+            const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+            setCartCount(totalItems);
+          }
+        } catch (error) {
+          console.error('Error parsing cart:', error);
+          setCartCount(0);
+        }
+      } else {
+        setCartCount(0);
+      }
+    };
+
+    // Initial update
+    updateCartCount();
+
+    // Listen for custom cart update event
+    const handleCartUpdate = () => {
+      updateCartCount();
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate);
+  }, []);
 
   return (
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed w-full bg-white shadow-md z-50 transition-all duration-300 ${
+      className={`fixed w-full bg-white shadow-md z-50  ${
         isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'
       }`}
     >
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center">
-            <motion.h1 whileHover={{ scale: 1.05 }} className="text-2xl font-bold">
+            <motion.h1 whileHover={{ scale: 1.02 }}>
               <Link to="/">
-                <img src="logo.png" alt="Snapkart" style={{ width: '190px', height: 'auto' }} className="hidden md:block" />
-                <img src="logo.png" alt="Snapkart" style={{ width: '130px', height: 'auto' }} className="md:hidden" />
+                <h1 className="text-3xl md:text-4xl font-semibold font-['Great_Vibes'] tracking-wide">
+                  Snapkart
+                </h1>
+                {/* <img src="logo.png" alt="Snapkart" style={{ width: '190px', height: '60px' }}/> */}
               </Link>
             </motion.h1>
           </div>
-          
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
             <motion.a whileHover={{ scale: 1.05 }} className="hover:text-gray-600" href="/men">Men</motion.a>
@@ -75,8 +109,15 @@ const Navbar = () => {
               <Link to="/Profile"><UserIcon className="h-5 w-5 md:h-6 md:w-6" /></Link>
             </motion.div>
 
-            <motion.div whileHover={{ scale: 1.1 }} className="cursor-pointer">
-              <Link to="/Cart"><ShoppingCartIcon className="h-5 w-5 md:h-6 md:w-6" /></Link>
+            <motion.div whileHover={{ scale: 1.1 }} className="cursor-pointer relative">
+              <Link to="/Cart">
+                <ShoppingCartIcon className="h-5 w-5 md:h-6 md:w-6" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-black text-white text-[12px] rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
             </motion.div>
 
             {/* Mobile Menu Button */}

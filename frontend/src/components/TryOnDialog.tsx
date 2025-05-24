@@ -28,6 +28,21 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
   const [isAddingToCart, setIsAddingToCart] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Upper body');
   const [lastErrorTime, setLastErrorTime] = useState<number>(0);
+  const [currentApiKeyIndex, setCurrentApiKeyIndex] = useState<number>(0);
+
+  // Array of API keys
+  const apiKeys = [
+    import.meta.env.VITE_SEGMIND_API_KEY1,
+    import.meta.env.VITE_SEGMIND_API_KEY2,
+    import.meta.env.VITE_SEGMIND_API_KEY3,
+  ];
+
+  // Function to get next API key
+  const getNextApiKey = () => {
+    const nextIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+    setCurrentApiKeyIndex(nextIndex);
+    return apiKeys[nextIndex];
+  };
 
   // Handle person image upload
   const handlePersonUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,8 +102,9 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
       const productImageBase64 = await fileToBase64(new File([productImageBlob], 'product.jpg'));
 
       // API call to Segmind with retry logic
-      const makeApiCall = async (retryCount: number) => {
+      const makeApiCall = async (retryCount: number, apiKeyIndex: number) => {
         try {
+          console.log(`Making API call with key index: ${apiKeyIndex}`);
           const response = await axios.post(
             import.meta.env.VITE_SEGMIND_API_ENDPOINT || 'https://api.segmind.com/v1/try-on-diffusion',
             {
@@ -103,7 +119,7 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
             {
               headers: {
                 'Content-Type': 'application/json',
-                'x-api-key': import.meta.env.VITE_SEGMIND_API_KEY || '',
+                'x-api-key': apiKeys[apiKeyIndex],
               },
             }
           );
@@ -113,6 +129,7 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
             setTryOnResult(imageUrl);
             setRetryCount(0); // Reset retry count on success
             setLastErrorTime(0); // Reset error time on success
+            setCurrentApiKeyIndex(apiKeyIndex); // Update current API key index
           } else {
             throw new Error('Invalid response from API');
           }
@@ -120,21 +137,26 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
           if (err.response?.status === 429) {
             setLastErrorTime(Date.now());
             if (retryCount < 3) {
+              // Calculate next API key index
+              const nextApiKeyIndex = (apiKeyIndex + 1) % apiKeys.length;
+              console.log(`Rate limit hit, switching from key ${apiKeyIndex} to key ${nextApiKeyIndex}`);
+              
               // Wait for 2 seconds before retrying
               await new Promise(resolve => setTimeout(resolve, 2000));
-              return makeApiCall(retryCount + 1);
+              return makeApiCall(retryCount + 1, nextApiKeyIndex);
             }
-            throw new Error('Rate limit exceeded. Please wait a minute before trying again.');
+            throw new Error('Please try again!.');
           }
           throw err;
         }
       };
 
-      await makeApiCall(retryCount);
+      // Start with the current API key index
+      await makeApiCall(retryCount, currentApiKeyIndex);
     } catch (err: any) {
       console.error('API Error:', err);
       if (err.response?.status === 429) {
-        setError('The API is currently busy. Please wait a minute before trying again.');
+        setError('Please try again later.');
       } else {
         setError(err.message || 'Failed to perform virtual try-on. Please try again.');
       }
@@ -205,7 +227,7 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
                     />
                   </div>
                   <div className="mt-4 text-center">
-                    <p className="text-lg font-bold">₹{price}</p>
+                    <p className="text-lg font">{productName}</p>
                   </div>
                 </div>
               </div>
@@ -247,7 +269,7 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
                     {/* Category Selection */}
                     <div className="space-y-2">
                       <h4 className="font-medium">Select Category</h4>
-                      <div className="flex flex-col space-y-2">
+                      <div className="flex flex-row space-x-4 ">
                         {['Upper body', 'Lower body', 'Dress'].map((category) => (
                           <label key={category} className="flex items-center space-x-2 cursor-pointer">
                             <input
@@ -303,7 +325,7 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="col-span-1 lg:col-span-2 bg-gray-50 rounded-xl p-4 mt-8"
+                  className="col-span-1 lg:col-span-2 bg-gray-50 rounded-xl p-4 "
                 >
                   <h4 className="text-lg font-medium mb-4 text-center">Try-On Result</h4>
                   <div className="relative rounded-xl overflow-hidden max-w-md mx-auto">
@@ -313,7 +335,7 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
                       className="w-full aspect-square object-contain"
                     />
                   </div>
-                  <button
+                  {/* <button
                     onClick={handleAddToCart}
                     disabled={isAddingToCart}
                     className="w-1/4  mx-auto mt-4 bg-black text-white py-2 px-4 rounded-lg font-medium flex items-center justify-center hover:bg-gray-800 transition-colors disabled:opacity-50"
@@ -329,7 +351,7 @@ const TryOnDialog: React.FC<TryOnDialogProps> = ({
                         Add to Cart - ₹{price}
                       </>
                     )}
-                  </button>
+                  </button> */}
                 </motion.div>
               )}
             </div>

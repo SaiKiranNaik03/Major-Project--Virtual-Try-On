@@ -12,7 +12,8 @@ const Footer = () => {
             transition={{ duration: 0.6 }}
             className="space-y-6"
           >
-            <h2 className="text-2xl font-bold">SNAPKART</h2>
+            <img src="logo_wt.png" alt="Snapkart" style={{ width: '120px', height: 'auto' }}/>
+            {/* <h2 className="text-2xl font-bold">SNAPKART</h2> */}
             <p className="text-gray-400 leading-relaxed">
             Experience fashion like never before with our virtual try-on feature — try before you buy, anytime, anywhere.
             </p>
@@ -100,7 +101,7 @@ const Footer = () => {
         >
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-gray-400">
-              © 2024 SNAPKART. All rights reserved.
+              © 2025 SNAPKART. All rights reserved.
             </p>
             {/* <div className="flex space-x-6">
               <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" alt="Visa" className="h-8" />

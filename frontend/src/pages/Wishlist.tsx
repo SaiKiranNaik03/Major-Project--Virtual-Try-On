@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+import { WishlistSkeleton } from '../components/Skeletons';
 
 // Icons
 import { 
@@ -13,9 +15,6 @@ import {
   FaShoppingBag
 } from 'react-icons/fa';
 import { HiOutlineShoppingBag } from 'react-icons/hi';
-
-// Import product data
-import productData from '../../../Dataset/1163.json';
 
 interface Product {
   id: number;
@@ -62,6 +61,7 @@ const Wishlist: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState<{[key: number]: string}>({});
   const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
   const [isRemoving, setIsRemoving] = useState<{[key: number]: boolean}>({});
+  const [loading, setLoading] = useState<boolean>(true);
 
   // Load wishlist from localStorage on component mount
   useEffect(() => {
@@ -72,47 +72,62 @@ const Wishlist: React.FC = () => {
         setWishlist(parsedWishlist);
       } catch (error) {
         console.error('Error parsing wishlist from localStorage:', error);
-        // If there's an error, initialize with default product
-        initializeDefaultWishlist();
+        setWishlist([]);
       }
     } else {
-      // If no wishlist exists, initialize with default product
-      initializeDefaultWishlist();
+      setWishlist([]);
     }
   }, []);
 
-  // Function to initialize default wishlist
-  const initializeDefaultWishlist = () => {
-    const defaultWishlist = [1163]; // Using the product ID from the JSON file
-    setWishlist(defaultWishlist);
-    localStorage.setItem('wishlist', JSON.stringify(defaultWishlist));
-  };
-
-  // Update wishlistProducts whenever wishlist changes
+  // Fetch product data for each wishlist item
   useEffect(() => {
-    if (wishlist.length === 0) {
-      setWishlistProducts([]);
-      return;
-    }
-
-    // For demo, we'll use the same product data for all items
-    const products = wishlist.map(id => ({
-      ...productData.data,
-      id: id
-    }));
-    setWishlistProducts(products);
-    
-    // Initialize selected sizes
-    const initialSizes: {[key: number]: string} = {};
-    products.forEach(product => {
-      const availableSizes = product.styleOptions
-        .filter(option => option.name === 'Size' && option.available)
-        .map(option => option.value);
-      if (availableSizes.length > 0) {
-        initialSizes[product.id] = availableSizes[0];
+    const fetchWishlistProducts = async () => {
+      if (wishlist.length === 0) {
+        setWishlistProducts([]);
+        setLoading(false);
+        return;
       }
-    });
-    setSelectedSize(initialSizes);
+
+      setLoading(true);
+      try {
+        const products = await Promise.all(
+          wishlist.map(async (id) => {
+            try {
+              const response = await axios.get(`/api/products/${id}`);
+              if (response.data.success && response.data.data) {
+                return response.data.data;
+              }
+              return null;
+            } catch (error) {
+              console.error(`Error fetching product ${id}:`, error);
+              return null;
+            }
+          })
+        );
+
+        // Filter out any null values and set the products
+        const validProducts = products.filter((product): product is Product => product !== null);
+        setWishlistProducts(validProducts);
+        
+        // Initialize selected sizes
+        const initialSizes: {[key: number]: string} = {};
+        validProducts.forEach(product => {
+          const availableSizes = product.styleOptions
+            .filter(option => option.name === 'Size' && option.available)
+            .map(option => option.value);
+          if (availableSizes.length > 0) {
+            initialSizes[product.id] = availableSizes[0];
+          }
+        });
+        setSelectedSize(initialSizes);
+      } catch (error) {
+        console.error('Error fetching wishlist products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWishlistProducts();
   }, [wishlist]);
 
   // Remove item from wishlist
@@ -121,14 +136,8 @@ const Wishlist: React.FC = () => {
     
     setTimeout(() => {
       const updatedWishlist = wishlist.filter(id => id !== productId);
-      
-      // If the wishlist becomes empty, reinitialize it
-      if (updatedWishlist.length === 0) {
-        initializeDefaultWishlist();
-      } else {
-        setWishlist(updatedWishlist);
-        localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
-      }
+      setWishlist(updatedWishlist);
+      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
       
       const newIsRemoving = {...isRemoving};
       delete newIsRemoving[productId];
@@ -146,6 +155,44 @@ const Wishlist: React.FC = () => {
     const size = selectedSize[productId];
     const product = wishlistProducts.find(p => p.id === productId);
     if (product) {
+      const cartItem = {
+        id: product.id,
+        name: product.productDisplayName,
+        price: product.price,
+        image: product.styleImages.default.imageURL,
+        size: size,
+        quantity: 1,
+        brand: product.brandName,
+        color: product.baseColour
+      };
+
+      const savedCart = localStorage.getItem('cart');
+      let cartItems = [];
+
+      if (savedCart) {
+        try {
+          cartItems = JSON.parse(savedCart);
+          if (!Array.isArray(cartItems)) {
+            cartItems = [];
+          }
+        } catch (error) {
+          console.error('Error parsing cart:', error);
+          cartItems = [];
+        }
+      }
+
+      // Check if item with same size already exists
+      const existingItemIndex = cartItems.findIndex(
+        (item: any) => item.id === cartItem.id && item.size === cartItem.size
+      );
+
+      if (existingItemIndex !== -1) {
+        cartItems[existingItemIndex].quantity += 1;
+      } else {
+        cartItems.push(cartItem);
+      }
+
+      localStorage.setItem('cart', JSON.stringify(cartItems));
       alert(`Added ${product.productDisplayName} (Size: ${size}) to cart`);
     }
   };
@@ -204,6 +251,10 @@ const Wishlist: React.FC = () => {
     rest: { scale: 1, transition: { duration: 0.5 } }
   };
 
+  if (loading) {
+    return <WishlistSkeleton />;
+  }
+
   return (
     <div className="bg-white min-h-screen pt-24 pb-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -253,7 +304,7 @@ const Wishlist: React.FC = () => {
                 >
                   <motion.div
                     variants={productHover}
-                    className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                    className="bg-white rounded-xl overflow-hidden border border-gray shadow-sm hover:shadow-md transition-shadow"
                     initial="rest"
                     whileHover="hover"
                     animate={hoveredProduct === product.id ? "hover" : "rest"}

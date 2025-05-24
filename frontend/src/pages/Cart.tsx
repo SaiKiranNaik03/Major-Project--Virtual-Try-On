@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
+import { CartSkeleton } from '../components/Skeletons';
 
 // Icons
 import { 
@@ -15,36 +17,17 @@ import {
   FaLock
 } from 'react-icons/fa';
 
-// Sample cart data - this would normally come from your global state or API
-const initialCartItems = [
-  {
-    id: 1,
-    name: 'Gradient Graphic T-shirt',
-    price: 120,
-    image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    color: 'Black',
-    size: 'M',
-    quantity: 1
-  },
-  {
-    id: 3,
-    name: 'Women\'s Floral Dress',
-    price: 135,
-    image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    color: 'Pink',
-    size: 'S',
-    quantity: 1
-  },
-  {
-    id: 5,
-    name: 'Modern Minimalist Shirt',
-    price: 125,
-    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80',
-    color: 'White',
-    size: 'L',
-    quantity: 2
-  }
-];
+interface CartItem {
+  id: number;
+  name: string;
+  price: number;
+  discountedPrice: number;
+  image: string;
+  color: string;
+  size: string;
+  quantity: number;
+  brand: string;
+}
 
 // Delivery fee
 const DELIVERY_FEE = 15;
@@ -53,33 +36,73 @@ const DELIVERY_FEE = 15;
 const DISCOUNT_PERCENTAGE = 20;
 
 const Cart: React.FC = () => {
-  const [cartItems, setCartItems] = useState(initialCartItems);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [promoCode, setPromoCode] = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
   const [isRemoving, setIsRemoving] = useState<{[key: number]: boolean}>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load cart items from localStorage on component mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      try {
+        const items = JSON.parse(savedCart);
+        if (Array.isArray(items)) {
+          setCartItems(items);
+        }
+      } catch (error) {
+        console.error('Error parsing cart:', error);
+        setCartItems([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }, []);
 
   // Calculate cart totals
-  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const subtotal = cartItems.reduce((total, item) => total + (item.discountedPrice * item.quantity), 0);
   const discount = promoApplied ? (subtotal * DISCOUNT_PERCENTAGE / 100) : 0;
   const total = subtotal - discount + DELIVERY_FEE;
 
   // Update quantity
-  const updateQuantity = (id: number, newQuantity: number) => {
+  const updateQuantity = (id: number, size: string, newQuantity: number) => {
     if (newQuantity < 1) return;
     
-    setCartItems(cartItems.map(item => 
-      item.id === id ? { ...item, quantity: newQuantity } : item
-    ));
+    const updatedItems = cartItems.map(item => 
+      (item.id === id && item.size === size) ? { ...item, quantity: newQuantity } : item
+    );
+    
+    setCartItems(updatedItems);
+    localStorage.setItem('cart', JSON.stringify(updatedItems));
+    
+    // Dispatch custom event for cart update
+    window.dispatchEvent(new Event('cartUpdated'));
+    
+    toast.success(`Quantity updated to ${newQuantity}`, {
+      icon: '🔄',
+      duration: 2000,
+    });
   };
 
   // Remove item from cart
-  const removeFromCart = (id: number) => {
+  const removeFromCart = (id: number, size: string) => {
     setIsRemoving({...isRemoving, [id]: true});
     
     // Delay actual removal to allow animation to complete
     setTimeout(() => {
-      setCartItems(cartItems.filter(item => item.id !== id));
+      const updatedItems = cartItems.filter(item => !(item.id === id && item.size === size));
+      setCartItems(updatedItems);
+      localStorage.setItem('cart', JSON.stringify(updatedItems));
       setIsRemoving({...isRemoving, [id]: false});
+      
+      // Dispatch custom event for cart update
+      window.dispatchEvent(new Event('cartUpdated'));
+      
+      toast.success('Item removed from cart', {
+        icon: '🗑️',
+        duration: 2000,
+      });
     }, 300);
   };
 
@@ -88,9 +111,15 @@ const Cart: React.FC = () => {
     // In a real app, you would validate the promo code with your backend
     if (promoCode.toLowerCase() === 'discount20') {
       setPromoApplied(true);
-      alert('Promo code applied successfully!');
+      toast.success('Promo code applied successfully!', {
+        icon: '🎉',
+        duration: 3000,
+      });
     } else {
-      alert('Invalid promo code');
+      toast.error('Invalid promo code', {
+        icon: '❌',
+        duration: 3000,
+      });
     }
   };
 
@@ -123,6 +152,10 @@ const Cart: React.FC = () => {
       }
     }
   };
+
+  if (isLoading) {
+    return <CartSkeleton />;
+  }
 
   return (
     <div className="bg-white min-h-screen pt-24 pb-16">
@@ -172,7 +205,7 @@ const Cart: React.FC = () => {
                   {cartItems.map((item) => (
                     !isRemoving[item.id] && (
                       <motion.div
-                        key={item.id}
+                        key={`${item.id}-${item.size}`}
                         variants={fadeIn}
                         initial="hidden"
                         animate="visible"
@@ -183,32 +216,41 @@ const Cart: React.FC = () => {
                       >
                         <div className="flex items-center">
                           {/* Product Image */}
-                          <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden border border-gray-100">
+                          <Link to={`/product/${item.id}`} className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden border border-gray-100">
                             <img 
                               src={item.image} 
                               alt={item.name}
                               className="w-full h-full object-cover"
                             />
-                          </div>
+                          </Link>
                           
                           {/* Product Details */}
-                          <div className="ml-6 flex-1">
-                            <h3 className="font-medium text-lg text-gray-900 mb-1">{item.name}</h3>
+                          <Link to={`/product/${item.id}`} className="ml-6 flex-1">
+                            <h3 className="font-medium text-lg text-gray-900 mb-1 hover:text-gray-700 transition-colors">{item.name}</h3>
+                            <p className="text-sm text-gray-500 mb-1">{item.brand}</p>
                             <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
                               <span className="flex items-center">
-                                <span className="w-3 h-3 rounded-full bg-gray-200 mr-2"></span>
+                                <span 
+                                  className="w-4 h-4 rounded-full border border-gray-200 mr-2"
+                                  style={{ backgroundColor: item.color.toLowerCase() }}
+                                ></span>
                                 {item.color}
                               </span>
                               <span>Size: {item.size}</span>
                             </div>
-                            <div className="text-lg font-bold text-gray-900">${item.price}</div>
-                          </div>
+                            <div className="flex items-center">
+                              <span className="text-lg font-bold text-gray-900">₹{item.discountedPrice}</span>
+                              {item.discountedPrice < item.price && (
+                                <span className="ml-2 text-sm text-gray-500 line-through">₹{item.price}</span>
+                              )}
+                            </div>
+                          </Link>
                           
                           {/* Quantity Controls */}
                           <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                             <button 
                               className="px-3 py-2 text-gray-500 hover:text-black hover:bg-gray-50 transition-colors"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              onClick={() => updateQuantity(item.id, item.size, item.quantity - 1)}
                               disabled={item.quantity <= 1}
                             >
                               <FaMinus className="h-3 w-3" />
@@ -216,7 +258,7 @@ const Cart: React.FC = () => {
                             <span className="px-4 py-2 text-gray-900 font-medium border-x border-gray-200">{item.quantity}</span>
                             <button 
                               className="px-3 py-2 text-gray-500 hover:text-black hover:bg-gray-50 transition-colors"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              onClick={() => updateQuantity(item.id, item.size, item.quantity + 1)}
                             >
                               <FaPlus className="h-3 w-3" />
                             </button>
@@ -225,7 +267,7 @@ const Cart: React.FC = () => {
                           {/* Delete Button */}
                           <button 
                             className="ml-6 text-gray-400 hover:text-red-500 transition-colors"
-                            onClick={() => removeFromCart(item.id)}
+                            onClick={() => removeFromCart(item.id, item.size)}
                             aria-label="Remove item"
                           >
                             <FaTrashAlt className="h-5 w-5" />
@@ -251,7 +293,7 @@ const Cart: React.FC = () => {
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium text-gray-900">${subtotal.toFixed(2)}</span>
+                    <span className="font-medium text-gray-900">₹{subtotal.toFixed(2)}</span>
                   </div>
                   
                   {promoApplied && (
@@ -260,7 +302,7 @@ const Cart: React.FC = () => {
                         <FaTag className="mr-2" />
                         Discount ({DISCOUNT_PERCENTAGE}%)
                       </span>
-                      <span className="text-green-600">-${discount.toFixed(2)}</span>
+                      <span className="text-green-600">-₹{discount.toFixed(2)}</span>
                     </div>
                   )}
                   
@@ -269,12 +311,12 @@ const Cart: React.FC = () => {
                       <FaTruck className="mr-2" />
                       Delivery Fee
                     </span>
-                    <span className="font-medium text-gray-900">${DELIVERY_FEE.toFixed(2)}</span>
+                    <span className="font-medium text-gray-900">₹{DELIVERY_FEE.toFixed(2)}</span>
                   </div>
                   
                   <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
                     <span className="font-bold text-lg">Total</span>
-                    <span className="font-bold text-lg">${total.toFixed(2)}</span>
+                    <span className="font-bold text-lg">₹{total.toFixed(2)}</span>
                   </div>
                 </div>
                 

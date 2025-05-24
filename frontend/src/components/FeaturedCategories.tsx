@@ -13,7 +13,7 @@ const featuredCategories = [
   },
   {
     id: 3,
-    name: 'Accessories',
+    name: 'GenZ',
     image: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?ixlib=rb-4.0.3',
   },
 ];

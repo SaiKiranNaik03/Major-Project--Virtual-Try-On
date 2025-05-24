@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { VirtualTryOnSkeleton } from '../components/Skeletons';
 
 interface TryOnResult {
   imageUrl: string;
@@ -57,10 +58,19 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ productImage, productName, 
     comment: ''
   });
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [currentApiKeyIndex, setCurrentApiKeyIndex] = useState<number>(0);
+  const [retryCount, setRetryCount] = useState<number>(0);
 
   const clothingInputRef = useRef<HTMLInputElement>(null);
   const personInputRef = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+
+  // Array of API keys
+  const apiKeys = [
+    import.meta.env.VITE_SEGMIND_API_KEY1,
+    import.meta.env.VITE_SEGMIND_API_KEY2,
+    import.meta.env.VITE_SEGMIND_API_KEY3,
+  ];
 
   // Clean up object URLs when component unmounts
   useEffect(() => {
@@ -137,42 +147,69 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ productImage, productName, 
       const clothImageBase64 = await fileToBase64(clothingImage.file);
       const modelImageBase64 = await fileToBase64(personImage.file);
 
-      // API call to Segmind
-      const response = await axios.post(
-        import.meta.env.VITE_SEGMIND_API_ENDPOINT || 'https://api.segmind.com/v1/try-on-diffusion',
-        {
-          model_image: modelImageBase64,
-          cloth_image: clothImageBase64,
-          category: category === 'upper_body' ? 'Upper body' : category === 'lower_body' ? 'Lower body' : 'Dress',
-          num_inference_steps: 35,
-          guidance_scale: 2,
-          seed: 50000,
-          base64: true
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': import.meta.env.VITE_SEGMIND_API_KEY || '',
-          },
-        }
-      );
+      // API call to Segmind with retry logic
+      const makeApiCall = async (retryCount: number, apiKeyIndex: number) => {
+        try {
+          console.log(`Making API call with key index: ${apiKeyIndex}`);
+          const response = await axios.post(
+            import.meta.env.VITE_SEGMIND_API_ENDPOINT || 'https://api.segmind.com/v1/try-on-diffusion',
+            {
+              model_image: modelImageBase64,
+              cloth_image: clothImageBase64,
+              category: category === 'upper_body' ? 'Upper body' : category === 'lower_body' ? 'Lower body' : 'Dress',
+              num_inference_steps: 35,
+              guidance_scale: 2,
+              seed: 50000,
+              base64: true
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKeys[apiKeyIndex],
+              },
+            }
+          );
 
-      // Handle the response
-      if (response.data && response.data.image) {
-        const imageUrl = `data:image/jpeg;base64,${response.data.image}`;
-        setTryOnResult({ imageUrl });
-        setActiveTab('result');
-        
-        // Scroll to result if on mobile
-        if (window.innerWidth < 768) {
-          resultRef.current?.scrollIntoView({ behavior: 'smooth' });
+          if (response.data && response.data.image) {
+            const imageUrl = `data:image/jpeg;base64,${response.data.image}`;
+            setTryOnResult({ imageUrl });
+            setActiveTab('result');
+            setRetryCount(0); // Reset retry count on success
+            setCurrentApiKeyIndex(apiKeyIndex); // Update current API key index
+            
+            // Scroll to result if on mobile
+            if (window.innerWidth < 768) {
+              resultRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }
+          } else {
+            throw new Error('Invalid response from API');
+          }
+        } catch (err: any) {
+          if (err.response?.status === 429) {
+            if (retryCount < 3) {
+              // Calculate next API key index
+              const nextApiKeyIndex = (apiKeyIndex + 1) % apiKeys.length;
+              console.log(`Rate limit hit, switching from key ${apiKeyIndex} to key ${nextApiKeyIndex}`);
+              
+              // Wait for 2 seconds before retrying
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              return makeApiCall(retryCount + 1, nextApiKeyIndex);
+            }
+            throw new Error('Please try again later.');
+          }
+          throw err;
         }
-      } else {
-        throw new Error('Invalid response from API');
-      }
+      };
+
+      // Start with the current API key index
+      await makeApiCall(retryCount, currentApiKeyIndex);
     } catch (err: any) {
       console.error('API Error:', err);
-      setError(err.response?.data?.message || 'Failed to perform virtual try-on. Please try again.');
+      if (err.response?.status === 429) {
+        setError('Please try again later.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to perform virtual try-on. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -269,6 +306,10 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ productImage, productName, 
     setNewReview({ name: '', rating: 5, comment: '' });
     setShowReviewForm(false);
   };
+
+  if (isLoading) {
+    return <VirtualTryOnSkeleton />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-6 pt-32">

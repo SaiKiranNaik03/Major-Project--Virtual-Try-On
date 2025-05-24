@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import api from '../config/axios';
+import { CollectionPageSkeleton } from '../components/Skeletons';
 
 // Icons
 import { 
@@ -127,13 +128,50 @@ const NewArrivalsCollection: React.FC = () => {
   const colors = Array.from(new Set(products.map((p: Product) => p.baseColour)));
   const brands = Array.from(new Set(products.map((p: Product) => p.brandName)));
 
+  // Initialize wishlist from localStorage
+  useEffect(() => {
+    const savedWishlist = localStorage.getItem('wishlist');
+    if (savedWishlist) {
+      try {
+        const wishlistIds = JSON.parse(savedWishlist);
+        if (Array.isArray(wishlistIds)) {
+          setWishlist(wishlistIds);
+        }
+      } catch (error) {
+        console.error('Error parsing wishlist from localStorage:', error);
+        setWishlist([]);
+      }
+    }
+  }, []);
+
   // Toggle wishlist
   const toggleWishlist = (productId: number) => {
-    if (wishlist.includes(productId)) {
-      setWishlist(wishlist.filter(id => id !== productId));
-    } else {
-      setWishlist([...wishlist, productId]);
+    const savedWishlist = localStorage.getItem('wishlist');
+    let wishlistIds: number[] = [];
+    
+    if (savedWishlist) {
+      try {
+        wishlistIds = JSON.parse(savedWishlist);
+        if (!Array.isArray(wishlistIds)) {
+          wishlistIds = [];
+        }
+      } catch (error) {
+        console.error('Error parsing wishlist:', error);
+        wishlistIds = [];
+      }
     }
+
+    if (wishlistIds.includes(productId)) {
+      // Remove from wishlist
+      wishlistIds = wishlistIds.filter(id => id !== productId);
+    } else {
+      // Add to wishlist
+      wishlistIds.push(productId);
+    }
+
+    // Save to localStorage
+    localStorage.setItem('wishlist', JSON.stringify(wishlistIds));
+    setWishlist(wishlistIds);
   };
 
   // Handle filter changes
@@ -219,11 +257,7 @@ const NewArrivalsCollection: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
-      </div>
-    );
+    return <CollectionPageSkeleton />;
   }
 
   return (
