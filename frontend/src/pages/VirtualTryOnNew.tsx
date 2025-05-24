@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { VirtualTryOnSkeleton } from '../components/Skeletons';
 
 interface TryOnResult {
   imageUrl: string;
@@ -306,10 +305,6 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ productImage, productName, 
     setNewReview({ name: '', rating: 5, comment: '' });
     setShowReviewForm(false);
   };
-
-  if (isLoading) {
-    return <VirtualTryOnSkeleton />;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-6 pt-32">
