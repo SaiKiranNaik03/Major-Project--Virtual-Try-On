@@ -32,7 +32,7 @@
 
 | Category     | Tools/Technologies                                                                 |
 |--------------|-------------------------------------------------------------------------------------|
-| Frontend     | ReactJS, Tailwind CSS                                                              |
+| Frontend     | ReactJS, Tailwind CSS, TypeScript                                                   |
 | Backend      | Node.js, Express.js                                                                |
 | Database     | MongoDB                                                                            |
 | AI/ML Models | ResNet-50, KNN (recommendation), Try-On Diffusion (virtual try-on)                 |
